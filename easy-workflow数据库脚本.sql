@@ -72,7 +72,7 @@ CREATE TABLE proc_execution(
 `node_id` VARCHAR(250) NOT NULL COMMENT '节点ID',  
 `node_name` VARCHAR(250) NOT NULL COMMENT '节点名称',
 `prev_node_id` VARCHAR(250) DEFAULT NULL COMMENT '上级节点ID',  
-`node_type` TINYINT NOT NULL COMMENT '流程类型 0:根节点 1:任务节点 2:网关节点 3:结束节点',
+`node_type` TINYINT NOT NULL COMMENT '流程类型 0:开始节点 1:任务节点 2:网关节点 3:结束节点',
 `gateway` VARCHAR(500) DEFAULT NULL COMMENT '网关定义(只有在nodetype为2时才会有)',
 `is_cosigned` TINYINT NOT NULL COMMENT '是否会签',
 `pre_events`  VARCHAR(500) DEFAULT NULL COMMENT '前置事件',
@@ -88,13 +88,13 @@ CREATE TABLE hist_proc_execution(
 `node_id` VARCHAR(250) NOT NULL COMMENT '节点ID',  
 `node_name` VARCHAR(250) NOT NULL COMMENT '节点名称',
 `prev_node_id` VARCHAR(250) DEFAULT NULL COMMENT '上级节点ID',  
-`node_type` TINYINT NOT NULL COMMENT '流程类型 0:根节点 1:任务节点 2:网关节点 3:结束节点',
+`node_type` TINYINT NOT NULL COMMENT '流程类型 0:开始节点 1:任务节点 2:网关节点 3:结束节点',
 `gateway` VARCHAR(500) DEFAULT NULL COMMENT '网关定义(只有在nodetype为2时才会有)',
 `is_cosigned` TINYINT NOT NULL COMMENT '是否会签',
 `pre_events`  VARCHAR(500) DEFAULT NULL COMMENT '前置事件',
 `exit_events` VARCHAR(500) DEFAULT NULL COMMENT '退出事件',
 `create_time` DATETIME DEFAULT NOW() COMMENT '创建时间'
-)
+);
 
 
 
