@@ -7,7 +7,7 @@ CREATE TABLE `proc_def` (
   `version` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '版本号',
   `resource` TEXT NOT NULL COMMENT '流程定义模板',
   `user_id` VARCHAR(250) NOT NULL COMMENT '创建者ID',
-  `source` VARCHAR(250) NOT NULL COMMENT '来源(引擎可能被多个系统使用，这里记下从什么系统创建的流程)',
+  `source` VARCHAR(250) NOT NULL COMMENT '来源(引擎可能被多个系统、组件等使用，这里记下从哪个来源创建的流程)',
   `create_time` DATETIME DEFAULT NOW() COMMENT '创建时间',
   PRIMARY KEY (`id`)
 ) ;
@@ -23,7 +23,7 @@ CREATE TABLE `hist_proc_def` (
   `version` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '版本号',
   `resource` TEXT NOT NULL COMMENT '流程定义模板',
   `user_id` VARCHAR(250) NOT NULL COMMENT '创建者ID',
-  `source` VARCHAR(250) NOT NULL COMMENT '来源(引擎可能被多个系统使用，这里记下从什么系统创建的流程)',
+  `source` VARCHAR(250) NOT NULL COMMENT '来源(引擎可能被多个系统、组件等使用，这里记下从哪个来源创建的流程)',
   `create_time` DATETIME DEFAULT NOW() COMMENT '创建时间'
 ) 
 
@@ -32,16 +32,17 @@ CREATE TABLE `hist_proc_def` (
 
 DROP TABLE `proc_inst`;
 CREATE TABLE `proc_inst` (
-  `id` INT UNSIGNED NOT NULL COMMENT '流程实例ID',
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '流程实例ID',
   `proc_id` INT NOT NULL COMMENT '流程ID',
   `proc_version` INT UNSIGNED NOT NULL COMMENT '流程版本号', 
+  `business_id` VARCHAR(250) DEFAULT NULL COMMENT '业务ID',
   `current_node_id` VARCHAR(250) NOT NULL COMMENT '当前进行节点ID',  
   `create_time` DATETIME DEFAULT NOW(),  
    `is_completed` TINYINT DEFAULT 0 COMMENT '0:未完成 1:已完成',
   PRIMARY KEY (`id`)
 ) ;
 
-
+#
 CREATE TABLE `task` (
   `id` INT UNSIGNED NOT NULL COMMENT '任务ID',
   `proc_inst_id` INT UNSIGNED NOT NULL COMMENT '流程实例ID',
@@ -98,5 +99,15 @@ CREATE TABLE hist_proc_execution(
 
 
 
+#需增加proc_inst_variables表
+DROP TABLE proc_inst_variable;
+CREATE TABLE proc_inst_variable(
+`id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+`proc_inst_id` INT UNSIGNED NOT NULL COMMENT '流程实例ID',
+`key` VARCHAR(250) NOT NULL COMMENT '变量key',
+`value` VARCHAR(250) NOT NULL COMMENT '变量value'
+);
 
-需增加proc_inst_variables表
+CREATE INDEX ix_proc_inst_id ON proc_inst_variable(proc_inst_id)
+
+

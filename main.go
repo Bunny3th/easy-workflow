@@ -1,10 +1,9 @@
 package main
 
 import (
-	. "easy-workflow/pkg/workflow/engine"
 	"easy-workflow/pkg/workflow/model/gateway"
 	. "easy-workflow/pkg/workflow/model/node"
-	."easy-workflow/pkg/workflow/model/variables"
+	."easy-workflow/pkg/workflow/engine"
 	"encoding/json"
 	"fmt"
 )
@@ -55,11 +54,11 @@ func main() {
 	}
 	fmt.Println(string(j))
 
-	id,err := ProcessSave("员工请假", string(j), "001", "SYSA")
-	if err != nil {
-		fmt.Println(err)
-	}
-	fmt.Println("流程保存成功，ID：",id)
+	//id,err := ProcessSave("员工请假", string(j), "001", "SYSA")
+	//if err != nil {
+	//	fmt.Println(err)
+	//}
+	//fmt.Println("流程保存成功，ID：",id)
 
 	//ID,err:=GetProcessID("员工请假","SYSA")
 	//if err != nil {
@@ -73,10 +72,11 @@ func main() {
 	//}
 	//fmt.Printf("%+v",nodes)
 
-	id,err=ProcessStart(1,"开始请假",Variables{})
-	if err != nil {
-		fmt.Println(err)
-	}
-	fmt.Println("流程ID:",id)
+	//id,err=InstanceInit(1,"Business123",map[string]string{"starter":"U0001"})
+	//if err != nil {
+	//	fmt.Println(err)
+	//}
+	//fmt.Println("流程实例ID:",id)
+	ProcessNode(1,Node{})
 
 }
