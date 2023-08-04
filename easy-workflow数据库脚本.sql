@@ -43,18 +43,25 @@ CREATE TABLE `proc_inst` (
 ) ;
 
 #
+DROP TABLE `task`;
 CREATE TABLE `task` (
-  `id` INT UNSIGNED NOT NULL COMMENT '任务ID',
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '任务ID',
   `proc_inst_id` INT UNSIGNED NOT NULL COMMENT '流程实例ID',
   `node_id` VARCHAR(250) NOT NULL COMMENT '节点ID',  
   `user_id` VARCHAR(250) NOT NULL COMMENT '分配用户ID',
-  `is_cosigned` TINYINT DEFAULT 0 COMMENT '0:任意一人通过即可 1:会签',
+  #`is_cosigned` TINYINT DEFAULT 0 COMMENT '0:任意一人通过即可 1:会签',
   `is_passed` TINYINT DEFAULT NULL COMMENT '任务是否通过 0:驳回 1:通过',
-  `is_finished` TINYINT DEFAULT 0 COMMENT '0:未执行 1:执行完成',
+  `is_finished` TINYINT DEFAULT 0 COMMENT '0:任务未处理 1:处理完成',
   `create_time` DATETIME DEFAULT NOW() COMMENT '系统创建任务时间',
-  `finished_time` DATETIME DEFAULT NULL COMMENT '用户完成任务时间',
+  `finished_time` DATETIME DEFAULT NULL COMMENT '用户处理任务时间',
   PRIMARY KEY (`id`)
 ) 
+
+#思考 task表中是否需要加 prenodeid，应该需要。
+#因为一个节点的上级节点可能不是一个，所以节点驳回的时候，就需要知道往哪个节点驳回
+#是否会签可以冗余在表中否？如果冗余，则可以不用去`proc_execution`表读取
+
+
 
 CREATE TABLE task_comment
 (
@@ -74,10 +81,10 @@ CREATE TABLE proc_execution(
 `node_name` VARCHAR(250) NOT NULL COMMENT '节点名称',
 `prev_node_id` VARCHAR(250) DEFAULT NULL COMMENT '上级节点ID',  
 `node_type` TINYINT NOT NULL COMMENT '流程类型 0:开始节点 1:任务节点 2:网关节点 3:结束节点',
-`gateway` VARCHAR(500) DEFAULT NULL COMMENT '网关定义(只有在nodetype为2时才会有)',
+#`gateway` VARCHAR(500) DEFAULT NULL COMMENT '网关定义(只有在nodetype为2时才会有)',
 `is_cosigned` TINYINT NOT NULL COMMENT '是否会签',
-`pre_events`  VARCHAR(500) DEFAULT NULL COMMENT '前置事件',
-`exit_events` VARCHAR(500) DEFAULT NULL COMMENT '退出事件',
+#`pre_events`  VARCHAR(500) DEFAULT NULL COMMENT '前置事件',
+#`exit_events` VARCHAR(500) DEFAULT NULL COMMENT '退出事件',
 `create_time` DATETIME DEFAULT NOW() COMMENT '创建时间'
 );
 
@@ -90,10 +97,10 @@ CREATE TABLE hist_proc_execution(
 `node_name` VARCHAR(250) NOT NULL COMMENT '节点名称',
 `prev_node_id` VARCHAR(250) DEFAULT NULL COMMENT '上级节点ID',  
 `node_type` TINYINT NOT NULL COMMENT '流程类型 0:开始节点 1:任务节点 2:网关节点 3:结束节点',
-`gateway` VARCHAR(500) DEFAULT NULL COMMENT '网关定义(只有在nodetype为2时才会有)',
+#`gateway` VARCHAR(500) DEFAULT NULL COMMENT '网关定义(只有在nodetype为2时才会有)',
 `is_cosigned` TINYINT NOT NULL COMMENT '是否会签',
-`pre_events`  VARCHAR(500) DEFAULT NULL COMMENT '前置事件',
-`exit_events` VARCHAR(500) DEFAULT NULL COMMENT '退出事件',
+#`pre_events`  VARCHAR(500) DEFAULT NULL COMMENT '前置事件',
+#`exit_events` VARCHAR(500) DEFAULT NULL COMMENT '退出事件',
 `create_time` DATETIME DEFAULT NOW() COMMENT '创建时间'
 );
 

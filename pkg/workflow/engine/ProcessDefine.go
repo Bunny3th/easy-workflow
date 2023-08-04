@@ -7,7 +7,6 @@ import (
 	"easy-workflow/pkg/workflow/util"
 	"encoding/json"
 	"errors"
-	"fmt"
 )
 
 //流程定义解析(json->struct)
@@ -60,12 +59,11 @@ func ProcessSave(ProcessName string, Resource string, CreateUserID string, Sourc
 	return r.ID,nil
 }
 
-//将Node转为可被数据库表记录的执行步骤。因为结束节点的PrevNodeID可能是n个，则在数据库表中需要存n行
+//将Node转为可被数据库表记录的执行步骤。因为节点的PrevNodeID可能是n个，则在数据库表中需要存n行
 func Nodes2Execution(nodes []Node) (string, error) {
 	var executions []Execution
 	for _, n := range nodes {
 		if len(n.PrevNodeIDs) <= 1 {
-			gw, _ := json.Marshal(n.GateWay)
 			var PrevNodeID string
 			if len(n.PrevNodeIDs) == 0 {
 				PrevNodeID = ""
@@ -77,23 +75,16 @@ func Nodes2Execution(nodes []Node) (string, error) {
 				NodeName:   n.NodeName,
 				PrevNodeID: PrevNodeID,
 				NodeType:   int(n.NodeType),
-				Gateway:    string(gw),
 				IsCosigned: int(n.IsCosigned),
-				PreEvents:  fmt.Sprintf("%v", n.PreEvents),
-				ExitEvents: fmt.Sprintf("%v", n.ExitEvents),
 			})
 		} else {
 			for _, pre := range n.PrevNodeIDs {
-				gw, _ := json.Marshal(n.GateWay)
 				executions = append(executions, Execution{
 					NodeID:     n.NodeID,
 					NodeName:   n.NodeName,
 					PrevNodeID: pre,
 					NodeType:   int(n.NodeType),
-					Gateway:    string(gw),
 					IsCosigned: int(n.IsCosigned),
-					PreEvents:  fmt.Sprintf("%v", n.PreEvents),
-					ExitEvents: fmt.Sprintf("%v", n.ExitEvents),
 				})
 			}
 		}
@@ -108,7 +99,7 @@ func Nodes2Execution(nodes []Node) (string, error) {
 }
 
 //获取流程ID
-func GetProcessID(ProcessName string, Source string) (int, error) {
+func GetProcessIDByProcessName(ProcessName string, Source string) (int, error) {
 	var ID int
 	_, err := dao.ExecSQL("SELECT id FROM proc_def where name=? and source=?", &ID, ProcessName, Source)
 
