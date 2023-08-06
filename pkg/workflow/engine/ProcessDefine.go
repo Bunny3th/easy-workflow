@@ -98,7 +98,7 @@ func Nodes2Execution(nodes []Node) (string, error) {
 	return string(json), nil
 }
 
-//获取流程ID
+//获取流程ID by 流程名、来源
 func GetProcessIDByProcessName(ProcessName string, Source string) (int, error) {
 	var ID int
 	_, err := dao.ExecSQL("SELECT id FROM proc_def where name=? and source=?", &ID, ProcessName, Source)
@@ -110,7 +110,18 @@ func GetProcessIDByProcessName(ProcessName string, Source string) (int, error) {
 	return ID, nil
 }
 
-//获取流程定义
+func GetProcessIDByInstanceID(ProcessInstanceID int) (int, error) {
+	var ID int
+	_, err := dao.ExecSQL("SELECT proc_id FROM `proc_inst` WHERE id=?", &ID,ProcessInstanceID)
+
+	if err != nil {
+		return 0, err
+	}
+
+	return ID, nil
+}
+
+//获取流程定义原始json
 func GetProcessDefine(ProcessID int) ([]Node, error) {
 	type result struct {
 		Resource string

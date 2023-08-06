@@ -7,10 +7,10 @@ import (
 type NodeType int
 
 const (
-	Root    NodeType = 0 //开始节点
-	Task    NodeType = 1 //任务节点,指的是需要人完成的节点
-	GateWay NodeType = 2 //参考activiti的网关.目前只实现了排他网关
-	End     NodeType = 3 //结束节点,结束节点不需要人参与，到了此节点，则流程实例完成
+	RootNode    NodeType = 0 //开始节点
+	TaskNode    NodeType = 1 //任务节点,指的是需要人完成的节点
+	GateWayNode NodeType = 2 //参考activiti的网关.目前只实现了排他网关
+	EndNode     NodeType = 3 //结束节点,结束节点不需要人参与，到了此节点，则流程实例完成
 )
 
 /*思考

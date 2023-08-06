@@ -3,6 +3,7 @@ package engine
 import (
 	"easy-workflow/pkg/dao"
 	"encoding/json"
+	"errors"
 	"strings"
 )
 
@@ -61,4 +62,31 @@ func VariablesMap2Json(Variables map[string]string) (string, error) {
 		return "", err
 	}
 	return string(j), nil
+}
+
+
+
+//解析变量,获取并设置其value
+func ResolveVariables(ProcessInstanceID int, UserIDs []string) ([]string, error) {
+	if len(UserIDs) < 1 {
+		return nil, errors.New("未指定处理人，无法处理节点")
+	}
+
+	var result []string
+	for _, u := range UserIDs {
+		if IsVariable(u) {
+			value, ok, err := SetVariable(ProcessInstanceID, u)
+			if err != nil {
+				return nil, err
+			}
+			if !ok {
+				return nil, errors.New("无法匹配变量:" + u)
+			}
+			result = append(result, value)
+		} else {
+			result = append(result, u)
+		}
+	}
+
+	return result, nil
 }

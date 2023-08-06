@@ -42,24 +42,64 @@ CREATE TABLE `proc_inst` (
   PRIMARY KEY (`id`)
 ) ;
 
+
+DROP TABLE `hist_proc_inst`;
+CREATE TABLE `hist_proc_inst` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  proc_inst_id INT UNSIGNED NOT NULL COMMENT '流程实例ID',
+  `proc_id` INT NOT NULL COMMENT '流程ID',
+  `proc_version` INT UNSIGNED NOT NULL COMMENT '流程版本号', 
+  `business_id` VARCHAR(250) DEFAULT NULL COMMENT '业务ID',
+  `current_node_id` VARCHAR(250) NOT NULL COMMENT '当前进行节点ID',  
+  `create_time` DATETIME DEFAULT NOW(),  
+   `is_completed` TINYINT DEFAULT 0 COMMENT '0:未完成 1:已完成',
+  PRIMARY KEY (`id`)
+) ;
+
+
+
 #
 DROP TABLE `task`;
 CREATE TABLE `task` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '任务ID',
+  `proc_id` INT UNSIGNED NOT NULL COMMENT '流程ID,冗余字段，偷懒用',
   `proc_inst_id` INT UNSIGNED NOT NULL COMMENT '流程实例ID',
   `node_id` VARCHAR(250) NOT NULL COMMENT '节点ID',  
-  `user_id` VARCHAR(250) NOT NULL COMMENT '分配用户ID',
-  #`is_cosigned` TINYINT DEFAULT 0 COMMENT '0:任意一人通过即可 1:会签',
+  `prev_node_id` VARCHAR(250) DEFAULT NULL COMMENT '上一节点ID',  
+  `is_cosigned` TINYINT DEFAULT 0 COMMENT '0:任意一人通过即可 1:会签',
+  `batch_code` VARCHAR(50) DEFAULT NULL COMMENT '批次码.节点会被驳回，一个节点可能产生多批task,用此码做分别',
+   `user_id` VARCHAR(250) NOT NULL COMMENT '分配用户ID',
   `is_passed` TINYINT DEFAULT NULL COMMENT '任务是否通过 0:驳回 1:通过',
-  `is_finished` TINYINT DEFAULT 0 COMMENT '0:任务未处理 1:处理完成',
+  `is_finished` TINYINT DEFAULT 0 COMMENT '0:任务未处理 1:处理完成.任务未必都是用户处理的，比如会签时一人驳回，其他任务系统自动设为已处理',
   `create_time` DATETIME DEFAULT NOW() COMMENT '系统创建任务时间',
-  `finished_time` DATETIME DEFAULT NULL COMMENT '用户处理任务时间',
+  `finished_time` DATETIME DEFAULT NULL COMMENT '处理任务时间',
   PRIMARY KEY (`id`)
 ) 
 
 #思考 task表中是否需要加 prenodeid，应该需要。
 #因为一个节点的上级节点可能不是一个，所以节点驳回的时候，就需要知道往哪个节点驳回
 #是否会签可以冗余在表中否？如果冗余，则可以不用去`proc_execution`表读取
+#task表中是否需要加一个子线程id？如果会签，会产生N个task，第一次可以通过nodeid获取所有的task
+#但是第二次呢？就会把上一次的task也获取到
+
+
+DROP TABLE `hist_task`;
+CREATE TABLE `hist_task` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  task_id INT UNSIGNED NOT NULL COMMENT '任务ID',
+  `proc_id` INT UNSIGNED NOT NULL COMMENT '流程ID,冗余字段，偷懒用',
+  `proc_inst_id` INT UNSIGNED NOT NULL COMMENT '流程实例ID',
+  `node_id` VARCHAR(250) NOT NULL COMMENT '节点ID',  
+  `prev_node_id` VARCHAR(250) DEFAULT NULL COMMENT '上一节点ID',  
+  `is_cosigned` TINYINT DEFAULT 0 COMMENT '0:任意一人通过即可 1:会签',
+  `batch_code` VARCHAR(50) DEFAULT NULL COMMENT '批次码.节点会被驳回，一个节点可能产生多批task,用此码做分别',
+   `user_id` VARCHAR(250) NOT NULL COMMENT '分配用户ID',
+  `is_passed` TINYINT DEFAULT NULL COMMENT '任务是否通过 0:驳回 1:通过',
+  `is_finished` TINYINT DEFAULT 0 COMMENT '0:任务未处理 1:处理完成.任务未必都是用户处理的，比如会签时一人驳回，其他任务系统自动设为已处理',
+  `create_time` DATETIME DEFAULT NOW() COMMENT '系统创建任务时间',
+  `finished_time` DATETIME DEFAULT NULL COMMENT '处理任务时间',
+  PRIMARY KEY (`id`)
+) 
 
 
 
@@ -117,4 +157,7 @@ CREATE TABLE proc_inst_variable(
 
 CREATE INDEX ix_proc_inst_id ON proc_inst_variable(proc_inst_id)
 
+
+2023-08-07 待办
+proc_inst表中，current_node_id 需要更新
 

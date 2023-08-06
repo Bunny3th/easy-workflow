@@ -83,8 +83,13 @@ func InstanceStart(ProcessID int, BusinessID string, Comment string, Variables m
 	}
 
 	//处理开始实例
-	StartNodeHandle(InstanceID, StartNode, Comment, variableJson)
+	err=StartNodeHandle(InstanceID, StartNode, Comment, variableJson)
+	if err != nil {
+		return InstanceID, err
+	}
 
 	return InstanceID, nil
 
 }
+
+
