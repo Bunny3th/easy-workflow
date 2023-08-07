@@ -2,8 +2,7 @@ package engine
 
 import (
 	"easy-workflow/pkg/dao"
-	. "easy-workflow/pkg/workflow/model/datatables"
-	. "easy-workflow/pkg/workflow/model/node"
+	. "easy-workflow/pkg/workflow/model"
 	"easy-workflow/pkg/workflow/util"
 	"encoding/json"
 	"errors"
@@ -12,30 +11,28 @@ import (
 //流程定义解析(json->struct)
 func ProcessParse(Resource string) ([]Node, error) {
 	var nodes []Node
-
 	err := util.Json2Struct(Resource, &nodes)
 	if err != nil {
 		return nil, err
 	}
-
 	return nodes, nil
 }
 
-//这里要写一个func，检查解析后的node结构，比如是否只有一个开始和结束节点
+//待办这里要写一个func，检查解析后的node结构，比如是否只有一个开始和结束节点
 
 //流程定义保存,返回 流程ID、error
 func ProcessSave(ProcessName string, Resource string, CreateUserID string, Source string) (int,error) {
-	if ProcessName == "" || Source == "" || CreateUserID == "" {
-		return 0,errors.New("流程名称、来源、创建人ID不能为空")
+	if ProcessName == "" || Source == "" || CreateUserID == "" || Resource==""{
+		return 0,errors.New("流程名称、资源定义、来源、创建人ID不能为空")
 	}
 
+	//解析传入的json，获得node列表
 	nodes, err := ProcessParse(Resource)
 	if err != nil {
 		return 0,err
 	}
 
-
-
+	//解析node之间的关系，转为json，以便存入数据库
 	execution, err := Nodes2Execution(nodes)
 	if err != nil {
 		return 0,err
@@ -49,8 +46,12 @@ func ProcessSave(ProcessName string, Resource string, CreateUserID string, Sourc
 	var r result
 	_, err = dao.ExecSQL("CALL sp_proc_def_save(?,?,?,?,?)", &r, ProcessName, Resource, execution, CreateUserID, Source)
 
-	if err != nil || r.Error != "" {
-		return 0,errors.New(err.Error() + r.Error)
+	if err != nil{
+		return 0,err
+	}
+
+	if r.Error != ""{
+		return 0,errors.New(r.Error)
 	}
 
 	//移除cache中对应流程ID的内容
@@ -63,9 +64,9 @@ func ProcessSave(ProcessName string, Resource string, CreateUserID string, Sourc
 func Nodes2Execution(nodes []Node) (string, error) {
 	var executions []Execution
 	for _, n := range nodes {
-		if len(n.PrevNodeIDs) <= 1 {
+		if len(n.PrevNodeIDs) <= 1 {  //上级节点数<=1的情况下
 			var PrevNodeID string
-			if len(n.PrevNodeIDs) == 0 {
+			if len(n.PrevNodeIDs) == 0 { //开始节点没有上级
 				PrevNodeID = ""
 			} else {
 				PrevNodeID = n.PrevNodeIDs[0]
@@ -77,7 +78,7 @@ func Nodes2Execution(nodes []Node) (string, error) {
 				NodeType:   int(n.NodeType),
 				IsCosigned: int(n.IsCosigned),
 			})
-		} else {
+		} else { //上级节点>1的情况下，则每一个上级节点都要生成一行
 			for _, pre := range n.PrevNodeIDs {
 				executions = append(executions, Execution{
 					NodeID:     n.NodeID,
@@ -88,7 +89,6 @@ func Nodes2Execution(nodes []Node) (string, error) {
 				})
 			}
 		}
-
 	}
 
 	json, err := json.Marshal(executions)
@@ -110,6 +110,7 @@ func GetProcessIDByProcessName(ProcessName string, Source string) (int, error) {
 	return ID, nil
 }
 
+//获取流程ID by 流程实例ID
 func GetProcessIDByInstanceID(ProcessInstanceID int) (int, error) {
 	var ID int
 	_, err := dao.ExecSQL("SELECT proc_id FROM `proc_inst` WHERE id=?", &ID,ProcessInstanceID)
@@ -121,7 +122,7 @@ func GetProcessIDByInstanceID(ProcessInstanceID int) (int, error) {
 	return ID, nil
 }
 
-//获取流程定义原始json
+//获取某个流程定义（返回流程中所有节点）
 func GetProcessDefine(ProcessID int) ([]Node, error) {
 	type result struct {
 		Resource string
@@ -134,4 +135,11 @@ func GetProcessDefine(ProcessID int) ([]Node, error) {
 	}
 
 	return ProcessParse(r.Resource)
+}
+
+//获得某个source下所有流程
+func GetProcessList(Source string) ([]ProcessDefine,error){
+	var ProcessDefine []ProcessDefine
+	_,err:=dao.ExecSQL("select * from proc_def where source=?",&ProcessDefine,Source)
+	return ProcessDefine,err
 }

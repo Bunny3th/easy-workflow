@@ -158,6 +158,12 @@ CREATE TABLE proc_inst_variable(
 CREATE INDEX ix_proc_inst_id ON proc_inst_variable(proc_inst_id)
 
 
-2023-08-07 待办
-proc_inst表中，current_node_id 需要更新
+
+
+
+
+
+
+#2023-08-07 待办
+#proc_inst表中，current_node_id 需要更新  ok  更新到最后一个task node
 

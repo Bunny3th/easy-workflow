@@ -67,6 +67,6 @@ func main() {
 	fmt.Println("流程实例ID:", id)
 
 	//应该在pass的时候直接处理下一个
-	TaskPass(2,"审批通过","")
+	//TaskPass(4,"审批通过","")
 	//TaskReject(2,"审批通过","")
 }

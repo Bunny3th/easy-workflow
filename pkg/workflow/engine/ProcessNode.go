@@ -2,8 +2,9 @@ package engine
 
 import (
 	"easy-workflow/pkg/dao"
-	. "easy-workflow/pkg/workflow/model/node"
+	. "easy-workflow/pkg/workflow/model"
 	"errors"
+	"fmt"
 	"regexp"
 	"strings"
 )
@@ -21,7 +22,6 @@ func ProcessNode(ProcessInstanceID int, CurrentNode Node, PrevNode Node) error {
 			return err
 		}
 	}
-
 
 	if CurrentNode.NodeType == GateWayNode {
 		err := GateWayNodeHandle(ProcessInstanceID, CurrentNode, PrevNode)
@@ -64,14 +64,15 @@ func StartNodeHandle(ProcessInstanceID int, StartNode Node, Comment string, Vari
 		return errors.New("未指定处理人，无法处理节点:" + StartNode.NodeName)
 	}
 
-	//匹配节点用户变量,开始节点只能有一个用户发起,所以不管多少用户，只要传第一个
-	users, err := ResolveVariables(ProcessInstanceID, StartNode.UserIDs[0:1])
+	//匹配节点用户变量,开始节点只能有一个用户发起,所以不管多少用户，只要第一个
+	userid:=StartNode.UserIDs[0:1][0]
+	users, err := ResolveVariables(ProcessInstanceID, []string{userid})
 	if err != nil {
 		return err
 	}
 
 	//生成一条Task
-	taskids, err := CreateTask(ProcessInstanceID, StartNode.NodeID, "", users)
+	taskids, err := CreateTask(ProcessInstanceID, StartNode.NodeID, "",[]string{users[userid]})
 	if err != nil {
 		return err
 	}
@@ -88,16 +89,22 @@ func StartNodeHandle(ProcessInstanceID int, StartNode Node, Comment string, Vari
 
 //结束节点处理
 func EndNodeHandle(ProcessInstanceID int) error {
-	_,err:=dao.ExecSQL("call sp_proc_inst_end(?)",nil,ProcessInstanceID)
+	_, err := dao.ExecSQL("call sp_proc_inst_end(?)", nil, ProcessInstanceID)
 	return err
 }
 
 //任务节点处理
 func TaskNodeHandle(ProcessInstanceID int, CurrentNode Node, PrevNode Node) error {
 	//匹配节点用户变量
-	users, err := ResolveVariables(ProcessInstanceID, CurrentNode.UserIDs)
+	kv, err := ResolveVariables(ProcessInstanceID, CurrentNode.UserIDs)
 	if err != nil {
 		return err
+	}
+
+	//生成用户数组
+	var users []string
+	for _,v:=range kv{
+		users=append(users,v)
 	}
 
 	//生成Task
@@ -110,35 +117,37 @@ func TaskNodeHandle(ProcessInstanceID int, CurrentNode Node, PrevNode Node) erro
 
 }
 
-//思考一个问题，如果task1-gw1-gw2-task2，那么gw2处理的时候，prev就是gw1，之后task2执行的时候，prev是哪个？
-//最简单的就是规定不能连续gw节点
-//这里应该没有问题了，因为:
-//1、只有任务节点才能开启一个gw
-//2、在这里已经是直接把任务节点作为PrevTaskNode原样传入下一个ProcessNode了
+//GateWay节点处理
 func GateWayNodeHandle(ProcessInstanceID int, CurrentNode Node, PrevTaskNode Node) error {
-	var NodeIDs []string
+	var NodeIDs []string  //condition指定的下级Node
 
+	//一个GW节点可以有多个condition,所以要遍历
 	for _, c := range CurrentNode.GWConfig.Conditions {
-
 		//正则表达式，匹配以$开头的字母、数字、下划线
 		reg := regexp.MustCompile(`[$]\w+`)
 		//获取表达式中所有的变量
 		variables := reg.FindAllString(c.Expression, -1)
 
-		expression := c.Expression
 		//替换变量
-		for _, v := range variables {
+		expression := c.Expression
+
+		//这里逻辑有问题，ResolveVariables传入variables不对
+		//for k, v := range variables {
 			//获取变量对应的value
-			values, err := ResolveVariables(ProcessInstanceID, variables)
+			kv, err := ResolveVariables(ProcessInstanceID, variables)
 			if err != nil {
 				return err
 			}
-			expression = strings.Replace(expression, v, values[0], -1)
-		}
+			for k,v:=range kv{
+				expression = strings.Replace(expression, k, v, -1)
+			}
 
-		//计算表达式，如果成功，则将节点添加到下一个节点组中
+
+		//}
+
+		//计算表达式，如果成功，则将节点添加到下一级节点组中
 		var ok bool
-		_, err := dao.ExecSQL("call sp_expression_evaluator(?)", &ok, expression)
+		_, err = dao.ExecSQL("call sp_expression_evaluator(?)", &ok, expression)
 		if err != nil {
 			return err
 		}
@@ -146,37 +155,44 @@ func GateWayNodeHandle(ProcessInstanceID int, CurrentNode Node, PrevTaskNode Nod
 			NodeIDs = append(NodeIDs, c.NodeID)
 		}
 	}
-
+    //对下级节点进行处理
 	for _, nodeid := range NodeIDs {
-		NextNode, ok, err := GetInstanceNode(ProcessInstanceID, nodeid)
+		NextNode, err := GetInstanceNode(ProcessInstanceID, nodeid)
 		if err != nil {
 			return err
 		}
-
-		//节点处理
-		if ok {
-			ProcessNode(ProcessInstanceID, NextNode, PrevTaskNode)
-		}
+		/*
+		思考一个问题，ProcessNod函数的形参PrevNode应该传什么？
+		如果传当前处理的GW节点本身，则要思考以下情况：
+		节点定义是task1-gw1-gw2-task2，如果在gw1处理的最后，ProcessNode的PrevNode传gw1本身，那么task2就永远找不到task1了
+		所以，在处理gw节点时,ProcessNod函数的形参PrevNode不能传gw本身，而是要传gw的上一节点，因为：
+		1、只有任务节点才能开启一个gw
+		2、直接把任务节点作为PrevTaskNode传入，就算下一个节点还是gw，重复此行为，之后的task节点还是可以获得上一个task节点
+		 */
+		ProcessNode(ProcessInstanceID, NextNode, PrevTaskNode)
 	}
 
 	return nil
 
 }
 
-
-//获取流程实例中某个Node
-func GetInstanceNode(ProcessInstanceID int, NodeID string) (Node, bool, error) {
+//获取流程实例中某个Node 返回 Node
+func GetInstanceNode(ProcessInstanceID int, NodeID string) (Node, error) {
 	ProcID, err := GetProcessIDByInstanceID(ProcessInstanceID)
 	if err != nil {
-		return Node{}, false, err
+		return Node{}, err
 	}
 
-	//从Cache中获得节点列表，取出下一个节点
+	//从Cache中获得流程节点列表
 	Nodes, err := GetProcCache(ProcID)
 	if err != nil {
-		return Node{}, false, err
+		return Node{}, err
 	}
-	Node, ok := Nodes[NodeID]
+	//获得节点
+	node, ok := Nodes[NodeID]
+	if !ok {
+		return Node{}, fmt.Errorf("ID为%d的流程实例中不存在ID为%d的节点", ProcessInstanceID, NodeID)
+	}
 
-	return Node, ok, nil
+	return node, nil
 }

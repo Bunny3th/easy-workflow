@@ -1,0 +1,26 @@
+#数据库相关配置
+DataBase:
+  Connect:
+    DBConnectString: goeasy:sNd%sLDjd*12@tcp(172.16.18.18:3306)/easy_workflow?charset=utf8mb4&parseTime=True&loc=Local
+    MaxIdleConns: 10   #空闲连接池中连接的最大数量
+    MaxOpenConns: 100  #打开数据库连接的最大数量
+    ConnMaxLifetime: 3600  #连接可复用的最大时间（分钟）
+  log:
+    SlowThreshold: 1                 #慢SQL阈值(秒)
+    LogLevel: 4                      #1:Silent  2:Error 3:Warn 4:Info
+    IgnoreRecordNotFoundError: true  #忽略ErrRecordNotFound（记录未找到）错误 true|false
+    Colorful: true                   #使用彩色打印 true|false
+  NamingStrategy:
+    TablePrefix:                     #表名前缀，如前缀为t_，则`User` 的表名应该是 `t_users`
+    SingularTable: true              #使用单数表名，启用该选项，此时，`User` 的表名应该是 `user`
+
+#GIN框架相关配置
+Gin:
+  GinMode: debug    # degug|release
+  Port: :8180       #端口
+
+#程序全局配置
+App:
+  LogPath: C:\Users\jk\go\src\easy-workflow\logs\      #日志文件路径
+  UploadPath: C:\Users\jk\go\src\easy-workflow\logs\   #上传文件路径
+
