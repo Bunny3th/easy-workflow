@@ -159,7 +159,7 @@ info:
     name: go-swagger帮助文档
     url: https://github.com/swaggo/swag/blob/master/README_zh-CN.md
   description: 演示说明文档
-  title: Go-Easy微服务框架API
+  title: easy-workflow工作流引擎API
   version: 1.0.0
 paths:
   /process/def/get:
@@ -257,7 +257,7 @@ paths:
       - 流程定义
   /process/inst/start:
     post:
-      description: 返回流程实例ID
+      description: 注意，VariablesJson格式是key-value对象集合:[{"Key":"starter","Value":"U0001"}]
       parameters:
       - description: 流程ID
         example: "1"
@@ -277,7 +277,7 @@ paths:
         name: Comment
         type: string
       - description: 变量(Json)
-        example: '"{"User":"001"}"'
+        example: '[{"Key":"starter","Value":"U0001"}]'
         in: formData
         name: VariablesJson
         type: string
@@ -295,15 +295,41 @@ paths:
       summary: 开始流程
       tags:
       - 流程实例
+  /process/task/finished:
+    get:
+      description: 返回的是任务数组
+      parameters:
+      - description: 用户ID
+        example: '"U001"'
+        in: query
+        name: userid
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.Task'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+      summary: 获取已办任务
+      tags:
+      - 任务
   /process/task/pass:
     post:
       parameters:
       - description: 任务ID
-        example: "1"
+        example: 1
         in: formData
         name: TaskID
         required: true
-        type: string
+        type: integer
       - description: 评论意见
         example: '"同意请假"'
         in: formData
@@ -332,11 +358,11 @@ paths:
     post:
       parameters:
       - description: 任务ID
-        example: "1"
+        example: 1
         in: formData
         name: TaskID
         required: true
-        type: string
+        type: integer
       - description: 评论意见
         example: '"不同意"'
         in: formData
@@ -359,6 +385,45 @@ paths:
           schema:
             type: string
       summary: 任务驳回
+      tags:
+      - 任务
+  /process/task/reject/free:
+    post:
+      description: 驳回到上游任意一个节点
+      parameters:
+      - description: 任务ID
+        example: 1
+        in: formData
+        name: TaskID
+        required: true
+        type: integer
+      - description: 评论意见
+        example: '"不同意"'
+        in: formData
+        name: Comment
+        type: string
+      - description: 变量(Json)
+        example: '"{"User":"001"}"'
+        in: formData
+        name: VariablesJson
+        type: string
+      - description: 驳回到哪个节点
+        example: '"流程开始节点"'
+        in: formData
+        name: RejectToNodeID
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ok
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+      summary: 自由任务驳回
       tags:
       - 任务
   /process/task/todo:
@@ -385,6 +450,31 @@ paths:
           schema:
             type: string
       summary: 获取待办任务
+      tags:
+      - 任务
+  /process/task/upstream:
+    get:
+      description: 此功能为自由驳回使用
+      parameters:
+      - description: 任务ID
+        in: query
+        name: taskid
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.Node'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+      summary: 获取本任务所在节点的所有上游节点
       tags:
       - 任务
 swagger: "2.0"

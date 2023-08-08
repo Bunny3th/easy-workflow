@@ -4,7 +4,7 @@ DROP TABLE `proc_def`;
 CREATE TABLE `proc_def` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '流程ID',
   `name` VARCHAR(250) DEFAULT NULL COMMENT '流程名字',
-  `version` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '版本号',
+  `version` INT UNSIGNED NOT NULL DEFAULT 1 COMMENT '版本号',
   `resource` TEXT NOT NULL COMMENT '流程定义模板',
   `user_id` VARCHAR(250) NOT NULL COMMENT '创建者ID',
   `source` VARCHAR(250) NOT NULL COMMENT '来源(引擎可能被多个系统、组件等使用，这里记下从哪个来源创建的流程)',
@@ -20,7 +20,7 @@ CREATE TABLE `hist_proc_def` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY, 
   `proc_id` INT UNSIGNED NOT NULL COMMENT '流程ID',
   `name` VARCHAR(250) DEFAULT NULL COMMENT '流程名字',
-  `version` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '版本号',
+  `version` INT UNSIGNED NOT NULL DEFAULT 1 COMMENT '版本号',
   `resource` TEXT NOT NULL COMMENT '流程定义模板',
   `user_id` VARCHAR(250) NOT NULL COMMENT '创建者ID',
   `source` VARCHAR(250) NOT NULL COMMENT '来源(引擎可能被多个系统、组件等使用，这里记下从哪个来源创建的流程)',
@@ -65,7 +65,7 @@ CREATE TABLE `task` (
   `proc_id` INT UNSIGNED NOT NULL COMMENT '流程ID,冗余字段，偷懒用',
   `proc_inst_id` INT UNSIGNED NOT NULL COMMENT '流程实例ID',
   `node_id` VARCHAR(250) NOT NULL COMMENT '节点ID',  
-  `prev_node_id` VARCHAR(250) DEFAULT NULL COMMENT '上一节点ID',  
+  `prev_node_id` VARCHAR(250) DEFAULT NULL COMMENT '上个处理节点ID,注意这里和execution中的上一个节点不一样，这里是实际审批处理时上个已处理节点的ID',  
   `is_cosigned` TINYINT DEFAULT 0 COMMENT '0:任意一人通过即可 1:会签',
   `batch_code` VARCHAR(50) DEFAULT NULL COMMENT '批次码.节点会被驳回，一个节点可能产生多批task,用此码做分别',
    `user_id` VARCHAR(250) NOT NULL COMMENT '分配用户ID',
@@ -167,3 +167,5 @@ CREATE INDEX ix_proc_inst_id ON proc_inst_variable(proc_inst_id)
 #2023-08-07 待办
 #proc_inst表中，current_node_id 需要更新  ok  更新到最后一个task node
 
+#20230809待办
+sp_task_next_opt_node 逻辑不对，在多次驳回提交后，上下节点的判断有误

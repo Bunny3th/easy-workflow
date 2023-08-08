@@ -34,7 +34,7 @@ func GetProcCache(ProcessID int) (ProcNodes, error) {
 
 //1、流程实例初始化 2、保存实例变量 返回:流程实例ID、开始节点
 func InstanceInit(ProcessID int, BusinessID string, VariableJson string) (int, Node, error) {
-    //获取流程定义(流程中所有node)
+	//获取流程定义(流程中所有node)
 	nodes, err := GetProcCache(ProcessID)
 	if err != nil {
 		return 0, Node{}, err
@@ -49,8 +49,8 @@ func InstanceInit(ProcessID int, BusinessID string, VariableJson string) (int, N
 	if err != nil {
 		return 0, Node{}, err
 	}
-	if r.Node_ID==""{
-		return 0,Node{},fmt.Errorf("无法获取流程ID为%d的开始节点",ProcessID)
+	if r.Node_ID == "" {
+		return 0, Node{}, fmt.Errorf("无法获取流程ID为%d的开始节点", ProcessID)
 	}
 	//获得开始节点
 	StartNode := nodes[r.Node_ID]
@@ -77,27 +77,18 @@ func InstanceInit(ProcessID int, BusinessID string, VariableJson string) (int, N
 }
 
 //开始流程实例 返回流程实例ID
-func InstanceStart(ProcessID int, BusinessID string, Comment string, Variables map[string]string) (int, error) {
-	//将变量转为json
-	variableJson, err := VariablesMap2Json(Variables)
-	if err != nil {
-		return 0, err
-	}
-
+func InstanceStart(ProcessID int, BusinessID string, Comment string, VariablesJson string) (int, error) {
 	//实例初始化
-	InstanceID, StartNode, err := InstanceInit(ProcessID, BusinessID, variableJson)
+	InstanceID, StartNode, err := InstanceInit(ProcessID, BusinessID, VariablesJson)
 	if err != nil {
 		return 0, err
 	}
 
 	//开始节点处理
-	err=StartNodeHandle(InstanceID, StartNode, Comment, variableJson)
+	err = StartNodeHandle(InstanceID, StartNode, Comment, VariablesJson)
 	if err != nil {
 		return InstanceID, err
 	}
 
 	return InstanceID, nil
-
 }
-
-

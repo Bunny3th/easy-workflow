@@ -1,12 +1,21 @@
 package main
 
 import (
-	. "easy-workflow/pkg/workflow/engine"
-	. "easy-workflow/pkg/workflow/model/gateway"
-	. "easy-workflow/pkg/workflow/model/node"
+	"bytes"
+	//. "easy-workflow/pkg/workflow/engine"
+	. "easy-workflow/pkg/workflow/model"
 	"encoding/json"
 	"fmt"
 )
+
+func JSONMarshal(t interface{}, escapeHtml bool) ([]byte, error) {
+	buffer := &bytes.Buffer{}
+	encoder := json.NewEncoder(buffer)
+	encoder.SetEscapeHTML(escapeHtml)
+	err := encoder.Encode(t)
+	return buffer.Bytes(), err
+}
+
 
 func main() {
 
@@ -22,25 +31,36 @@ func main() {
 		PrevNodeIDs: []string{"A"},
 	}
 
-	Node3 := Node{NodeID: "C", NodeName: "审批",
+	Node3 := Node{NodeID: "C", NodeName: "主管审批",
 		NodeType: 1, UserIDs: []string{"$Manager"},
 		PrevNodeIDs: []string{"B"},
 	}
 
+	Node4 := Node{NodeID: "D", NodeName: "老板审批",
+		NodeType: 1, UserIDs: []string{"$Boss"},
+		PrevNodeIDs: []string{"C"},
+	}
+
 	NodeE := Node{NodeID: "END", NodeName: "END",
-		NodeType: 3, PrevNodeIDs: []string{"C", "B"}}
+		NodeType: 3, PrevNodeIDs: []string{"D", "B"}}
 
 	var Nodelist []Node
 	Nodelist = append(Nodelist, Node1)
 	Nodelist = append(Nodelist, Node2)
 	Nodelist = append(Nodelist, Node3)
+	Nodelist = append(Nodelist, Node4)
 	Nodelist = append(Nodelist, NodeE)
 
-	j, err := json.Marshal(Nodelist)
+	j,err:= JSONMarshal(Nodelist,false)
 	if err != nil {
 		fmt.Println(err)
 	}
-	fmt.Println(string(j))
+	fmt.Print(string(j))
+
+
+	//j, err := json.Marshal(Nodelist)
+
+
 
 	//id,err := ProcessSave("员工请假", string(j), "001", "SYSA")
 	//if err != nil {
@@ -60,11 +80,11 @@ func main() {
 	//}
 	//fmt.Printf("%+v",nodes)
 
-	id, err := InstanceStart(1, "Business123", "请假啦", map[string]string{"starter": "U0001", "Manager": "U0002", "days": "5"})
-	if err != nil {
-		fmt.Println(err)
-	}
-	fmt.Println("流程实例ID:", id)
+	//id, err := InstanceStart(1, "Business123", "请假啦", map[string]string{"starter": "U0001", "Manager": "U0002", "days": "5"})
+	//if err != nil {
+	//	fmt.Println(err)
+	//}
+	//fmt.Println("流程实例ID:", id)
 
 	//应该在pass的时候直接处理下一个
 	//TaskPass(4,"审批通过","")

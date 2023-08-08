@@ -158,7 +158,7 @@ const docTemplate = `{
         },
         "/process/inst/start": {
             "post": {
-                "description": "返回流程实例ID",
+                "description": "注意，VariablesJson格式是key-value对象集合:[{\"Key\":\"starter\",\"Value\":\"U0001\"}]",
                 "produces": [
                     "application/json"
                 ],
@@ -192,7 +192,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "example": "\"{\"User\":\"001\"}\"",
+                        "example": "[{\"Key\":\"starter\",\"Value\":\"U0001\"}]",
                         "description": "变量(Json)",
                         "name": "VariablesJson",
                         "in": "formData"
@@ -203,6 +203,45 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "type": "integer"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/process/task/finished": {
+            "get": {
+                "description": "返回的是任务数组",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "任务"
+                ],
+                "summary": "获取已办任务",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "example": "\"U001\"",
+                        "description": "用户ID",
+                        "name": "userid",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.Task"
+                            }
                         }
                     },
                     "400": {
@@ -225,8 +264,8 @@ const docTemplate = `{
                 "summary": "任务通过",
                 "parameters": [
                     {
-                        "type": "string",
-                        "example": "1",
+                        "type": "integer",
+                        "example": 1,
                         "description": "任务ID",
                         "name": "TaskID",
                         "in": "formData",
@@ -274,8 +313,8 @@ const docTemplate = `{
                 "summary": "任务驳回",
                 "parameters": [
                     {
-                        "type": "string",
-                        "example": "1",
+                        "type": "integer",
+                        "example": 1,
                         "description": "任务ID",
                         "name": "TaskID",
                         "in": "formData",
@@ -293,6 +332,63 @@ const docTemplate = `{
                         "example": "\"{\"User\":\"001\"}\"",
                         "description": "变量(Json)",
                         "name": "VariablesJson",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "ok",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/process/task/reject/free": {
+            "post": {
+                "description": "驳回到上游任意一个节点",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "任务"
+                ],
+                "summary": "自由任务驳回",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "example": 1,
+                        "description": "任务ID",
+                        "name": "TaskID",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "example": "\"不同意\"",
+                        "description": "评论意见",
+                        "name": "Comment",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "example": "\"{\"User\":\"001\"}\"",
+                        "description": "变量(Json)",
+                        "name": "VariablesJson",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "example": "\"流程开始节点\"",
+                        "description": "驳回到哪个节点",
+                        "name": "RejectToNodeID",
                         "in": "formData"
                     }
                 ],
@@ -339,6 +435,44 @@ const docTemplate = `{
                             "type": "array",
                             "items": {
                                 "$ref": "#/definitions/model.Task"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/process/task/upstream": {
+            "get": {
+                "description": "此功能为自由驳回使用",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "任务"
+                ],
+                "summary": "获取本任务所在节点的所有上游节点",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "任务ID",
+                        "name": "taskid",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.Node"
                             }
                         }
                     },
@@ -577,7 +711,7 @@ var SwaggerInfo = &swag.Spec{
 	Host:             "localhost:8180",
 	BasePath:         "/",
 	Schemes:          []string{},
-	Title:            "Go-Easy微服务框架API",
+	Title:            "easy-workflow工作流引擎API",
 	Description:      "演示说明文档",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,

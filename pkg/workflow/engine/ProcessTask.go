@@ -138,3 +138,67 @@ func GetTaskFinishedList(UserID string) ([]Task, error) {
 	}
 	return tasks, nil
 }
+
+//流出task所在节点的上流节点
+func TaskUpstreamNodeList(TaskID int) ([]Node,error){
+	task,err:=GetTaskInfo(TaskID)
+	if err!=nil{
+		return nil,err
+	}
+
+
+	sql:="WITH RECURSIVE tmp(`node_id`,node_name,`prev_node_id`,`node_type`) AS " +
+		"(SELECT `node_id`,node_name,`prev_node_id`,`node_type` " +
+		"FROM `proc_execution` WHERE node_id=? " +
+		"UNION ALL " +
+		"SELECT a.`node_id`,a.node_name,a.`prev_node_id`,a.`node_type` " +
+		"FROM `proc_execution` a JOIN tmp b ON a.node_id=b.`prev_node_id`) " +
+		"SELECT node_id,node_name,prev_node_id,node_type FROM tmp WHERE node_type!=2 AND node_id!=?;"
+	var nodes []Node
+	if _,err:=ExecSQL(sql,&nodes,task.NodeID,task.NodeID);err==nil{
+		return nodes,nil
+	}else{
+		return nil,err
+	}
+}
+
+//自由驳回到任意一个上游节点
+func TaskFreeRejectToUpstreamNode(TaskID int,NodeID string,Comment string,VariableJson string) error{
+
+	type result struct {
+		Error            string
+		Next_opt_node_id string
+	}
+	var r result
+	_, err := ExecSQL("call sp_task_reject(?,?,?)", &r, TaskID, Comment, VariableJson)
+	if err != nil {
+		return err
+	}
+
+	if r.Error != "" {
+		return errors.New(r.Error)
+	}
+
+	task,err:=GetTaskInfo(TaskID)
+	if err!=nil{
+		return err
+	}
+
+	//当前task所在节点
+	CurrentNode, err := GetInstanceNode(task.ProcInstID, task.NodeID)
+	if err!=nil{
+		return err
+	}
+
+	//reject to 节点
+	RejectToNode,err := GetInstanceNode(task.ProcInstID, NodeID)
+	if err!=nil{
+		return err
+	}
+
+	err=ProcessNode(task.ProcInstID,RejectToNode,CurrentNode)
+	if err!=nil{
+		return err
+	}
+	return nil
+}

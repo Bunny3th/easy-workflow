@@ -3,7 +3,7 @@ package service
 import (
 	. "easy-workflow/pkg/dao"
 	. "easy-workflow/pkg/workflow/engine"
-	"encoding/json"
+	//"encoding/json"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
@@ -65,7 +65,7 @@ func ProcDef_Save(c *gin.Context) {
 	if ProcID, err := ProcessSave(ProcessName, Resource, CreateUserID, Source); err == nil {
 		c.JSON(http.StatusOK, ProcID)
 	} else {
-		c.JSON(400, err)
+		c.JSON(400, err.Error())
 	}
 }
 
@@ -82,7 +82,7 @@ func ProcDef_ListBySource(c *gin.Context) {
 	if procDef, err := GetProcessList(source); err == nil {
 		c.JSON(200, procDef)
 	} else {
-		c.JSON(400, err)
+		c.JSON(400, err.Error())
 	}
 }
 
@@ -100,18 +100,18 @@ func ProcDef_GetProcDefByID(c *gin.Context) {
 	if nodes, err := GetProcessDefine(id_int); err == nil {
 		c.JSON(200, nodes)
 	} else {
-		c.JSON(400, err)
+		c.JSON(400, err.Error())
 	}
 }
 
 // @Summary      开始流程
-// @Description  返回流程实例ID
+// @Description  注意，VariablesJson格式是key-value对象集合:[{"Key":"starter","Value":"U0001"}]
 // @Tags         流程实例
 // @Produce      json
 // @Param        ProcessID  formData string  true  "流程ID" example(1)
 // @Param        BusinessID  formData string  true  "业务员ID" example("订单001")
 // @Param        Comment  formData string  false  "评论意见" example("家中有事请假三天,请领导批准")
-// @Param        VariablesJson  formData string  false  "变量(Json)" example("{"User":"001"}")
+// @Param        VariablesJson  formData string  false  "变量(Json)" example([{"Key":"starter","Value":"U0001"}])
 // @Success      200  {object}  int 流程实例ID
 // @Failure      400  {object}  string 报错信息
 // @Router       /process/inst/start [post]
@@ -119,13 +119,13 @@ func ProcInst_Start(c *gin.Context) {
 	ProcessID, _ := strconv.Atoi(c.PostForm("ProcessID"))
 	BusinessID := c.PostForm("BusinessID")
 	Comment := c.PostForm("Comment")
-	VariablesJson := make(map[string]string)
-	json.Unmarshal([]byte(c.PostForm("Variables")), VariablesJson)
+	VariablesJson := c.PostForm("VariablesJson")
+	//json.Unmarshal([]byte(c.PostForm("Variables")), VariablesJson)
 
 	if id, err := InstanceStart(ProcessID, BusinessID, Comment, VariablesJson); err == nil {
 		c.JSON(200, id)
 	} else {
-		c.JSON(400, err)
+		c.JSON(400, err.Error())
 	}
 }
 
@@ -133,7 +133,7 @@ func ProcInst_Start(c *gin.Context) {
 // @Description
 // @Tags         任务
 // @Produce      json
-// @Param        TaskID  formData string  true  "任务ID" example(1)
+// @Param        TaskID  formData int  true  "任务ID" example(1)
 // @Param        Comment  formData string  false  "评论意见" example("同意请假")
 // @Param        VariablesJson  formData string  false  "变量(Json)" example("{"User":"001"}")
 // @Success      200  {object}  string "ok"
@@ -147,7 +147,7 @@ func Task_Pass(c *gin.Context) {
 	if err := TaskPass(TaskID, Comment, VariableJson); err == nil {
 		c.JSON(200, "ok")
 	} else {
-		c.JSON(400, err)
+		c.JSON(400, err.Error())
 	}
 }
 
@@ -155,7 +155,7 @@ func Task_Pass(c *gin.Context) {
 // @Description
 // @Tags         任务
 // @Produce      json
-// @Param        TaskID  formData string  true  "任务ID" example(1)
+// @Param        TaskID  formData int  true  "任务ID" example(1)
 // @Param        Comment  formData string  false  "评论意见" example("不同意")
 // @Param        VariablesJson  formData string  false  "变量(Json)" example("{"User":"001"}")
 // @Success      200  {object}  string "ok"
@@ -169,7 +169,7 @@ func Task_Reject(c *gin.Context) {
 	if err := TaskReject(TaskID, Comment, VariableJson); err == nil {
 		c.JSON(200, "ok")
 	} else {
-		c.JSON(400, err)
+		c.JSON(400, err.Error())
 	}
 }
 
@@ -186,10 +186,9 @@ func Task_ToDoList(c *gin.Context) {
 	if tasks, err := GetTaskToDoList(UserID); err == nil {
 		c.JSON(200, tasks)
 	} else {
-		c.JSON(400, err)
+		c.JSON(400, err.Error())
 	}
 }
-
 
 // @Summary      获取已办任务
 // @Description  返回的是任务数组
@@ -198,12 +197,54 @@ func Task_ToDoList(c *gin.Context) {
 // @Param        userid  query string  true  "用户ID" example("U001")
 // @Success      200  {object}  []model.Task 任务数组
 // @Failure      400  {object}  string 报错信息
-// @Router       /process/task/todo [get]
+// @Router       /process/task/finished [get]
 func Task_FinishedList(c *gin.Context) {
 	UserID := c.Query("userid")
 	if tasks, err := GetTaskFinishedList(UserID); err == nil {
 		c.JSON(200, tasks)
 	} else {
-		c.JSON(400, err)
+		c.JSON(400, err.Error())
+	}
+}
+
+// @Summary      获取本任务所在节点的所有上游节点
+// @Description  此功能为自由驳回使用
+// @Tags         任务
+// @Produce      json
+// @Param        taskid  query int  true  "任务ID" example("8")
+// @Success      200  {object}  []model.Node 节点任务数组
+// @Failure      400  {object}  string 报错信息
+// @Router       /process/task/upstream [get]
+func Task_UpstreamNodeList(c *gin.Context) {
+	TaskID, _ := strconv.Atoi(c.Query("taskid"))
+
+	if nodes, err := TaskUpstreamNodeList(TaskID); err == nil {
+		c.JSON(200, nodes)
+	} else {
+		c.JSON(400, err.Error())
+	}
+}
+
+// @Summary      自由任务驳回
+// @Description  驳回到上游任意一个节点
+// @Tags         任务
+// @Produce      json
+// @Param        TaskID  formData int  true  "任务ID" example(1)
+// @Param        Comment  formData string  false  "评论意见" example("不同意")
+// @Param        VariablesJson  formData string  false  "变量(Json)" example("{"User":"001"}")
+// @Param        RejectToNodeID  formData string  false  "驳回到哪个节点" example("流程开始节点")
+// @Success      200  {object}  string "ok"
+// @Failure      400  {object}  string 报错信息
+// @Router       /process/task/reject/free [post]
+func Task_FreeRejectToUpstreamNode(c *gin.Context) {
+	TaskID, _ := strconv.Atoi(c.PostForm("TaskID"))
+	Comment := c.PostForm("Comment")
+	VariableJson := c.PostForm("VariableJson")
+	RejectToNodeID:=c.PostForm("RejectToNodeID")
+
+	if err:=TaskFreeRejectToUpstreamNode(TaskID,RejectToNodeID,Comment,VariableJson);err == nil {
+		c.JSON(200, "ok")
+	} else {
+		c.JSON(400, err.Error())
 	}
 }

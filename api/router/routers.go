@@ -34,9 +34,10 @@ func NewRouter() *gin.Engine {
 
 	r.POST("/process/task/pass",Task_Pass)
 	r.POST("/process/task/reject",Task_Reject)
+	r.POST("/process/task/reject/free",Task_FreeRejectToUpstreamNode)
 	r.GET("/process/task/todo",Task_ToDoList)
 	r.GET("/process/task/finished",Task_FinishedList)
-
+	r.GET("/process/task/upstream",Task_UpstreamNodeList)
 
 
 	return r

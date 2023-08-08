@@ -1,8 +1,6 @@
 package model
 
-import (
-	. "easy-workflow/pkg/workflow/model/gateway"
-)
+
 
 type NodeType int
 
