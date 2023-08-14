@@ -1,30 +1,29 @@
 package main
 
 import (
-	"bytes"
 	//. "easy-workflow/pkg/workflow/engine"
 	. "easy-workflow/pkg/workflow/model"
-	"encoding/json"
+	. "easy-workflow/pkg/workflow/util"
 	"fmt"
 )
 
-func JSONMarshal(t interface{}, escapeHtml bool) ([]byte, error) {
-	buffer := &bytes.Buffer{}
-	encoder := json.NewEncoder(buffer)
-	encoder.SetEscapeHTML(escapeHtml)
-	err := encoder.Encode(t)
-	return buffer.Bytes(), err
-}
+//func JSONMarshal(t interface{}, escapeHtml bool) ([]byte, error) {
+//	buffer := &bytes.Buffer{}
+//	encoder := json.NewEncoder(buffer)
+//	encoder.SetEscapeHTML(escapeHtml)
+//	err := encoder.Encode(t)
+//	return buffer.Bytes(), err
+//}
+
 
 
 func main() {
-
 	Node1 := Node{NodeID: "A", NodeName: "请假",
 		NodeType: 0, UserIDs: []string{"$starter"},
 	}
 
 	//var GW gateway.GateWay
-	GW := ExclusiveGateway{[]Condition{{Expression: "$days>=3", NodeID: "C"}, {Expression: "$days<3", NodeID: "END"}}}
+	GW := HybridGateway{[]Condition{{Expression: "$days>=3", NodeID: "C"}, {Expression: "$days<3", NodeID: "END"}},[]string{},0}
 
 	Node2 := Node{NodeID: "B", NodeName: "请假天数判断",
 		NodeType: 2, GWConfig: GW,
@@ -56,6 +55,10 @@ func main() {
 		fmt.Println(err)
 	}
 	fmt.Print(string(j))
+
+
+	//var s []string
+	//fmt.Print(len(s))
 
 
 	//j, err := json.Marshal(Nodelist)

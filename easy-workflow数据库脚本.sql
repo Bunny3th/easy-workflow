@@ -167,5 +167,28 @@ CREATE INDEX ix_proc_inst_id ON proc_inst_variable(proc_inst_id)
 #2023-08-07 待办
 #proc_inst表中，current_node_id 需要更新  ok  更新到最后一个task node
 
-#20230809待办
-sp_task_next_opt_node 逻辑不对，在多次驳回提交后，上下节点的判断有误
+#20230809待办 
+#解决
+#sp_task_next_opt_node 逻辑不对，在多次驳回提交后，上下节点的判断有误
+#歧义出现在分支节点，因为有分支，所以不知道流向是什么
+#但是感觉可以倒推，倒推就能不受分支干扰
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
