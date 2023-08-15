@@ -92,3 +92,23 @@ func InstanceStart(ProcessID int, BusinessID string, Comment string, VariablesJs
 
 	return InstanceID, nil
 }
+
+//撤销流程实例 参数说明:InstanceID 实例ID,Force 是否强制撤销，若为false,则只有流程回到发起人这里才能撤销
+func InstanceRevoke(ProcessInstanceID int,Force bool) error{
+	if !Force{
+		//这段SQL判断是否当前Node就是开始Node
+		sql:="SELECT a.id FROM proc_inst a " +
+			"JOIN proc_execution b ON a.proc_id=b.proc_id AND a.current_node_id=b.node_id " +
+			"WHERE a.id=? AND b.prev_node_id IS NULL LIMIT 1"
+		var id int
+		_,err:=dao.ExecSQL(sql,&id,ProcessInstanceID)
+		if err!=nil{
+			return err
+		}
+		if id==0 {
+			return errors.New("当前流程所在节点不是发起节点，无法撤销!")
+		}
+	}
+	_, err := dao.ExecSQL("call sp_proc_inst_end(?,?)", nil, ProcessInstanceID,2)
+	return err
+}

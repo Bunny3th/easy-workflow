@@ -31,6 +31,7 @@ func NewRouter() *gin.Engine {
     r.GET("/process/def/get",ProcDef_GetProcDefByID)
 
 	r.POST("/process/inst/start",ProcInst_Start)
+	r.POST("/process/inst/revoke",ProcInst_Revoke)
 
 	r.POST("/process/task/pass",Task_Pass)
 	r.POST("/process/task/reject",Task_Reject)

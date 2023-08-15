@@ -89,7 +89,7 @@ func StartNodeHandle(ProcessInstanceID int, StartNode Node, Comment string, Vari
 
 //结束节点处理
 func EndNodeHandle(ProcessInstanceID int) error {
-	_, err := dao.ExecSQL("call sp_proc_inst_end(?)", nil, ProcessInstanceID)
+	_, err := dao.ExecSQL("call sp_proc_inst_end(?,?)", nil, ProcessInstanceID,1)
 	return err
 }
 
@@ -196,7 +196,10 @@ func GateWayNodeHandle(ProcessInstanceID int, CurrentNode Node, PrevTaskNode Nod
 			1、只有任务节点才能开启一个gw
 			2、直接把任务节点作为PrevTaskNode传入，就算下一个节点还是gw，重复此行为，之后的task节点还是可以获得上一个task节点
 		*/
-		ProcessNode(ProcessInstanceID, NextNode, PrevTaskNode)
+		err=ProcessNode(ProcessInstanceID, NextNode, PrevTaskNode)
+		if err!=nil{
+			return err
+		}
 	}
 
 	return nil
@@ -218,7 +221,7 @@ func GetInstanceNode(ProcessInstanceID int, NodeID string) (Node, error) {
 	//获得节点
 	node, ok := Nodes[NodeID]
 	if !ok {
-		return Node{}, fmt.Errorf("ID为%d的流程实例中不存在ID为%d的节点", ProcessInstanceID, NodeID)
+		return Node{}, fmt.Errorf("ID为%d的流程实例中不存在ID为%s的节点", ProcessInstanceID, NodeID)
 	}
 
 	return node, nil

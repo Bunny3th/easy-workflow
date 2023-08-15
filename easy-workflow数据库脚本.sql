@@ -38,7 +38,7 @@ CREATE TABLE `proc_inst` (
   `business_id` VARCHAR(250) DEFAULT NULL COMMENT '业务ID',
   `current_node_id` VARCHAR(250) NOT NULL COMMENT '当前进行节点ID',  
   `create_time` DATETIME DEFAULT NOW(),  
-   `is_completed` TINYINT DEFAULT 0 COMMENT '0:未完成 1:已完成',
+   `status` TINYINT DEFAULT 0 COMMENT '0:未完成 1:已完成 2:撤销',
   PRIMARY KEY (`id`)
 ) ;
 
@@ -52,7 +52,7 @@ CREATE TABLE `hist_proc_inst` (
   `business_id` VARCHAR(250) DEFAULT NULL COMMENT '业务ID',
   `current_node_id` VARCHAR(250) NOT NULL COMMENT '当前进行节点ID',  
   `create_time` DATETIME DEFAULT NOW(),  
-   `is_completed` TINYINT DEFAULT 0 COMMENT '0:未完成 1:已完成',
+   `status` TINYINT DEFAULT 0 COMMENT '0:未完成 1:已完成 2:撤销',
   PRIMARY KEY (`id`)
 ) ;
 
@@ -158,7 +158,13 @@ CREATE TABLE proc_inst_variable(
 CREATE INDEX ix_proc_inst_id ON proc_inst_variable(proc_inst_id)
 
 
-
+DROP TABLE hist_proc_inst_variable;
+CREATE TABLE hist_proc_inst_variable(
+`id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+`proc_inst_id` INT UNSIGNED NOT NULL COMMENT '流程实例ID',
+`key` VARCHAR(250) NOT NULL COMMENT '变量key',
+`value` VARCHAR(250) NOT NULL COMMENT '变量value'
+);
 
 
 

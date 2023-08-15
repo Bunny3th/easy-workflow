@@ -149,6 +149,49 @@
                 }
             }
         },
+        "/process/inst/revoke": {
+            "post": {
+                "description": "注意，Force 是否强制撤销，若为false,则只有流程回到发起人这里才能撤销",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "流程实例"
+                ],
+                "summary": "撤销流程",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "example": 1,
+                        "description": "流程实例ID",
+                        "name": "InstanceID",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "是否强制撤销",
+                        "name": "Force",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "ok",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/process/inst/start": {
             "post": {
                 "description": "注意，VariablesJson格式是key-value对象集合:[{\"Key\":\"starter\",\"Value\":\"U0001\"}]",
@@ -493,14 +536,26 @@
                 }
             }
         },
-        "model.ExclusiveGateway": {
+        "model.HybridGateway": {
             "type": "object",
             "properties": {
                 "conditions": {
+                    "description": "条件判断节点",
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/model.Condition"
                     }
+                },
+                "inevitableNodes": {
+                    "description": "必然执行的节点",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "waitForAllPrevNode": {
+                    "description": "0:等于包含网关，只要上级节点有一个完成，就可以往下走   1:等于并行网关，必须要上级节点全部完成才能往下走",
+                    "type": "integer"
                 }
             }
         },
@@ -518,20 +573,13 @@
                     "description": "Role        []string //节点处理角色数组。注意，一旦使用角色，则该节点默认不能会签。因为系统无法预先知道角色中存在多少用户。除非通过事件修改.暂时不用",
                     "allOf": [
                         {
-                            "$ref": "#/definitions/model.ExclusiveGateway"
+                            "$ref": "#/definitions/model.HybridGateway"
                         }
                     ]
                 },
                 "isCosigned": {
-                    "description": "Comment   string            //备注应该是运行时task输入",
+                    "description": "是否会签  会签的情况下，需要所有人通过才能进行下一节点，只要有一人反对，则退回上一节点",
                     "type": "integer"
-                },
-                "nextNodeIDs": {
-                    "description": "下级节点(节点可以有N个直接下级节点)  是否需要下级节点？感觉可以不用。需要，因为生成task时候需要知道下级是谁，或者可以通过计算得知",
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
                 },
                 "nodeID": {
                     "description": "节点名称",
@@ -564,7 +612,7 @@
                     }
                 },
                 "userIDs": {
-                    "description": "节点处理人数组",
+                    "description": "NextNodeIDs []string //下级节点(节点可以有N个直接下级节点)  是否需要下级节点？感觉可以不用。需要，因为生成task时候需要知道下级是谁，或者可以通过计算得知",
                     "type": "array",
                     "items": {
                         "type": "string"

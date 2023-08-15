@@ -129,6 +129,26 @@ func ProcInst_Start(c *gin.Context) {
 	}
 }
 
+// @Summary      撤销流程
+// @Description  注意，Force 是否强制撤销，若为false,则只有流程回到发起人这里才能撤销
+// @Tags         流程实例
+// @Produce      json
+// @Param        InstanceID  formData int  true  "流程实例ID" example(1)
+// @Param        Force  formData bool  true  "是否强制撤销" example("false")
+// @Success      200  {object}  string "ok"
+// @Failure      400  {object}  string 报错信息
+// @Router       /process/inst/revoke [post]
+func ProcInst_Revoke(c *gin.Context) {
+	InstanceID, _ := strconv.Atoi(c.PostForm("InstanceID"))
+	Force,_:=strconv.ParseBool(c.PostForm("Force"))
+
+	if err:=InstanceRevoke(InstanceID,Force);err==nil{
+		c.JSON(200,"ok")
+	}else{
+		c.JSON(400,err.Error())
+	}
+}
+
 // @Summary      任务通过
 // @Description
 // @Tags         任务
