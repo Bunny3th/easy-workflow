@@ -16,7 +16,6 @@ func (e *Event) MyEvent(ProcessInstanceID int, CurrentNode Node, PrevNode Node) 
 	return nil
 }
 
-//type EventFunc func(ProcessInstanceID int, CurrentNode Node, PrevNode Node) error
 
 var EventCache = make(map[string]reflect.Method)
 
