@@ -2,7 +2,7 @@ package test
 
 import (
 	. "easy-workflow/pkg/workflow/engine"
-	."easy-workflow/pkg/workflow/event"
+	. "easy-workflow/pkg/workflow/event"
 	. "easy-workflow/pkg/workflow/model"
 	. "easy-workflow/pkg/workflow/util"
 	"fmt"
@@ -103,20 +103,43 @@ func Test_Event(T *testing.T){
 	EventValue := reflect.ValueOf(&Event{})
 	EventType := EventValue.Type()
 	for i := 0; i < EventType.NumMethod(); i++ {
-		fmt.Println("start 加载配置项:", EventType.Method(i).Name)
+		fmt.Println("func:", EventType.Method(i).Name)
 		m:=EventType.Method(i)
 		run:=reflect.TypeOf((EventRun)(nil))
 
-		fmt.Println(m.Type.In(0))
+		fmt.Println(m.Type.NumIn())
+		fmt.Println(m.Name)
+
+		//fmt.Println(m.Type.In(0).ConvertibleTo(reflect.TypeOf(Node{})  ))
+		//fmt.Println(m.Type.In(1).Kind().String())
+		//fmt.Println(m.Type.In(2).ConvertibleTo(reflect.TypeOf(Node{})  ))
+		//fmt.Println(m.Type.In(3).ConvertibleTo(reflect.TypeOf(Node{})  ))
+
+		//fmt.Println((error)(nil))
+
+		//e:=reflect.TypeOf((error)(nil))
+
+		errtype:=reflect.TypeOf((*error)(nil)).Elem()
+		fmt.Println(errtype)
+
+		fmt.Println(m.Type.Out(0).Implements(errtype))
+//var e error=errors.New("")
+//		fmt.Println(reflect.ValueOf(out).CanConvert(reflect.TypeOf(e)))
+
+//errors.As()
+
+
+
+
 		if m.Type.AssignableTo(run){
         fmt.Println("yes")
-		var args = []reflect.Value{
-			reflect.ValueOf(&Event{}),
-			reflect.ValueOf(1), // 这里要加这个，否则报错
-			reflect.ValueOf(Node{}),
-			reflect.ValueOf(Node{}),
-		}
-		EventType.Method(i).Func.Call(args)
+		//var args = []reflect.Value{
+		//	reflect.ValueOf(&Event{}),
+		//	reflect.ValueOf(1), // 这里要加这个，否则报错
+		//	reflect.ValueOf(Node{}),
+		//	reflect.ValueOf(Node{}),
+		//}
+		//EventType.Method(i).Func.Call(args)
 	}
 }
 

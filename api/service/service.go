@@ -1,8 +1,8 @@
 package service
 
 import (
-	. "easy-workflow/pkg/dao"
-	. "easy-workflow/pkg/workflow/engine"
+	. "easy-workflow/workflow/dao"
+	. "easy-workflow/workflow/engine"
 	//"encoding/json"
 	"github.com/gin-gonic/gin"
 	"net/http"

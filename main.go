@@ -1,95 +1,40 @@
 package main
 
 import (
-	//. "easy-workflow/pkg/workflow/engine"
-	. "easy-workflow/pkg/workflow/model"
-	. "easy-workflow/pkg/workflow/util"
-	"fmt"
+	"easy-workflow/api/router"
+	. "easy-workflow/workflow/config"
+
 )
 
-//func JSONMarshal(t interface{}, escapeHtml bool) ([]byte, error) {
-//	buffer := &bytes.Buffer{}
-//	encoder := json.NewEncoder(buffer)
-//	encoder.SetEscapeHTML(escapeHtml)
-//	err := encoder.Encode(t)
-//	return buffer.Bytes(), err
-//}
-
-
-
+// @title easy-workflow工作流引擎API
+// @version 1.0.0
+// @description 演示说明文档
+// @contact.name go-swagger帮助文档
+// @contact.url https://github.com/swaggo/swag/blob/master/README_zh-CN.md
+// @host localhost:8180
+// @BasePath /
 func main() {
-	Node1 := Node{NodeID: "A", NodeName: "请假",
-		NodeType: 0, UserIDs: []string{"$starter"},
-	}
+	//示例:开启一个子协程，一般可用在定时任务
+	//go func() {
+	//	for {
+    //      do something
+	//	}
+	//}()
+	router := router.NewRouter()
+	router.Run(Gin.Port)
 
-	//var GW gateway.GateWay
-	GW := HybridGateway{[]Condition{{Expression: "$days>=3", NodeID: "C"}, {Expression: "$days<3", NodeID: "END"}},[]string{},0}
+	//这是使用证书走https协议的示例。但不建议在程序中使用，应通过nginx发布时定义
+	//router.RunTLS(":8080","D:\\nginx-1.21.6\\conf\\website_config\\cert\\dyuanzi.com.pem",
+	//	"D:\\nginx-1.21.6\\conf\\website_config\\cert\\dyuanzi.com.key")
 
-	Node2 := Node{NodeID: "B", NodeName: "请假天数判断",
-		NodeType: 2, GWConfig: GW,
-		PrevNodeIDs: []string{"A"},
-	}
+	//这里演示如何编译成linux下可执行文件 -o 参数指定生成文件名
+	//set GOARCH=amd64
+	//set GOOS=linux
+	//go build -o easy_linux main.go
 
-	Node3 := Node{NodeID: "C", NodeName: "主管审批",
-		NodeType: 1, UserIDs: []string{"$Manager"},
-		PrevNodeIDs: []string{"B"},
-	}
+	//如何使用swagger生成文档
+	//一般在main包所在目录执行 swag init
+	//但本项目中，swagger命令需要加上-d参数执行，如下
+	//swag init -d ./,../pkg/workflow/model
 
-	Node4 := Node{NodeID: "D", NodeName: "老板审批",
-		NodeType: 1, UserIDs: []string{"$Boss"},
-		PrevNodeIDs: []string{"C"},
-	}
-
-	NodeE := Node{NodeID: "END", NodeName: "END",
-		NodeType: 3, PrevNodeIDs: []string{"D", "B"}}
-
-	var Nodelist []Node
-	Nodelist = append(Nodelist, Node1)
-	Nodelist = append(Nodelist, Node2)
-	Nodelist = append(Nodelist, Node3)
-	Nodelist = append(Nodelist, Node4)
-	Nodelist = append(Nodelist, NodeE)
-
-	j,err:= JSONMarshal(Nodelist,false)
-	if err != nil {
-		fmt.Println(err)
-	}
-	fmt.Print(string(j))
-
-
-	//var s []string
-	//fmt.Print(len(s))
-
-
-	//j, err := json.Marshal(Nodelist)
-
-
-
-	//id,err := ProcessSave("员工请假", string(j), "001", "SYSA")
-	//if err != nil {
-	//	fmt.Println(err)
-	//}
-	//fmt.Println("流程保存成功，ID：",id)
-
-	//ID,err:=GetProcessID("员工请假","SYSA")
-	//if err != nil {
-	//	fmt.Println(err)
-	//}
-	//fmt.Println("ProcessID",ID)
-
-	//nodes,err:=GetProcessDefine(4)
-	//if err != nil {
-	//	fmt.Println(err)
-	//}
-	//fmt.Printf("%+v",nodes)
-
-	//id, err := InstanceStart(1, "Business123", "请假啦", map[string]string{"starter": "U0001", "Manager": "U0002", "days": "5"})
-	//if err != nil {
-	//	fmt.Println(err)
-	//}
-	//fmt.Println("流程实例ID:", id)
-
-	//应该在pass的时候直接处理下一个
-	//TaskPass(4,"审批通过","")
-	//TaskReject(2,"审批通过","")
 }
