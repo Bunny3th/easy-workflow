@@ -2,6 +2,7 @@ package engine
 
 import (
 	"easy-workflow/workflow/dao"
+	. "easy-workflow/workflow/event"
 	. "easy-workflow/workflow/model"
 	"errors"
 	"fmt"
@@ -10,14 +11,18 @@ import (
 )
 
 //处理节点,如：生成task、进行条件判断、处理结束节点等
-func ProcessNode(ProcessInstanceID int, CurrentNode Node, PrevNode Node) error {
+func ProcessNode(ProcessInstanceID int, CurrentNode *Node, PrevNode Node) error {
 	//这里处理前置事件
-	//do something
+	for _,event:=range CurrentNode.PreEvents{
+		err:=RunEvent(event,ProcessInstanceID,CurrentNode,PrevNode)
+		if err!=nil{
+			return err
+		}
+	}
 
-	//这里不需要处理开始节点，因为开始节点是特殊的，一个流程只有一个开始节点
-	//开始节点也需要处理，因为开始节点可能因为驳回而重新回到开始节点
+	//开始节点也需要处理，因为开始节点可能因为驳回而重新回到开始节点，此时的开始节点=普通任务节点
 	if CurrentNode.NodeType == RootNode {
-		err := TaskNodeHandle(ProcessInstanceID, CurrentNode, PrevNode)
+		_,err := TaskNodeHandle(ProcessInstanceID, CurrentNode, PrevNode)
 		if err != nil {
 			return err
 		}
@@ -31,7 +36,7 @@ func ProcessNode(ProcessInstanceID int, CurrentNode Node, PrevNode Node) error {
 	}
 
 	if CurrentNode.NodeType == TaskNode {
-		err := TaskNodeHandle(ProcessInstanceID, CurrentNode, PrevNode)
+		_,err := TaskNodeHandle(ProcessInstanceID, CurrentNode, PrevNode)
 		if err != nil {
 			return err
 		}
@@ -51,31 +56,24 @@ func ProcessNode(ProcessInstanceID int, CurrentNode Node, PrevNode Node) error {
 
 }
 
-//开始节点处理
-func StartNodeHandle(ProcessInstanceID int, StartNode Node, Comment string, VariableJson string) error {
+//开始节点处理 开始节点是一个特殊的任务节点，其特殊点在于:
+//1、在生成流程实例的同时，就要运行开始节点
+//2、开始节点生成的任务自动完成，而后自动进行下一个节点的处理
+func StartNodeHandle(ProcessInstanceID int, StartNode *Node, Comment string, VariableJson string) error {
 	if StartNode.NodeType != RootNode {
 		return errors.New("不是开始节点，无法处理节点:" + StartNode.NodeName)
 	}
 
-	//开始节点只需要一个处理人
-	//思考：如果开始节点有多个处理人，则可能进入会签状态，可能造成流程都无法正常开始
-	//所以，开始节点只能有一个处理人，且默认就是非会签节点
-	if len(StartNode.UserIDs) < 1 {
-		return errors.New("未指定处理人，无法处理节点:" + StartNode.NodeName)
+	//这里处理前置事件
+	for _,event:=range StartNode.PreEvents{
+		err:=RunEvent(event,ProcessInstanceID,StartNode,Node{})
+		if err!=nil{
+			return err
+		}
 	}
 
-	//匹配节点用户变量,开始节点只能有一个用户发起,所以不管多少用户，只要第一个
-	userid := StartNode.UserIDs[0:1][0]
-	users, err := ResolveVariables(ProcessInstanceID, []string{userid})
-	if err != nil {
-		return err
-	}
-
-	//生成一条Task
-	taskids, err := CreateTask(ProcessInstanceID, StartNode.NodeID, "", []string{users[userid]})
-	if err != nil {
-		return err
-	}
+	//生成Task
+	taskids, err := TaskNodeHandle(ProcessInstanceID, StartNode,Node{})
 
 	//完成task,并获取下一步NodeID
 	err = TaskPass(taskids[0], Comment, VariableJson)
@@ -84,7 +82,6 @@ func StartNodeHandle(ProcessInstanceID int, StartNode Node, Comment string, Vari
 	}
 
 	return nil
-
 }
 
 //结束节点处理
@@ -93,12 +90,12 @@ func EndNodeHandle(ProcessInstanceID int) error {
 	return err
 }
 
-//任务节点处理
-func TaskNodeHandle(ProcessInstanceID int, CurrentNode Node, PrevNode Node) error {
+//任务节点处理 返回生成的taskid数组
+func TaskNodeHandle(ProcessInstanceID int, CurrentNode *Node, PrevNode Node) ([]int,error) {
 	//匹配节点用户变量
 	kv, err := ResolveVariables(ProcessInstanceID, CurrentNode.UserIDs)
 	if err != nil {
-		return err
+		return nil,err
 	}
 
 	//生成用户数组
@@ -107,18 +104,28 @@ func TaskNodeHandle(ProcessInstanceID int, CurrentNode Node, PrevNode Node) erro
 		users = append(users, v)
 	}
 
-	//生成Task
-	_, err = CreateTask(ProcessInstanceID, CurrentNode.NodeID, PrevNode.NodeID, users)
-	if err != nil {
-		return err
+	//如果没有处理人，则任务无法分配
+	if len(users) < 1 {
+		return nil,errors.New("未指定处理人，无法处理节点:" + CurrentNode.NodeName)
 	}
 
-	return nil
+	//开始节点只能有一个用户发起,不管多少用户，只要第一个
+	//思考：如果开始节点有多个处理人，则可能进入会签状态，可能造成流程都无法正常开始
+	//所以，开始节点只能有一个处理人，且默认就是非会签节点
+	if CurrentNode.NodeType==RootNode{
+		users=users[0:1]
+	}
 
+	//生成Task
+	taskIDs, err := CreateTask(ProcessInstanceID, CurrentNode.NodeID, PrevNode.NodeID, users)
+	if err != nil {
+		return nil,err
+	}
+	return taskIDs,nil
 }
 
 //GateWay节点处理
-func GateWayNodeHandle(ProcessInstanceID int, CurrentNode Node, PrevTaskNode Node) error {
+func GateWayNodeHandle(ProcessInstanceID int, CurrentNode *Node, PrevTaskNode Node) error {
 	//--------------------首先，混合节点需要确认所有的上级节点都处理完，才能做下一步--------------------
 	var totalFinished int                          //所有已完成的上级节点
 	totalPrevNodes := len(CurrentNode.PrevNodeIDs) //所有上级节点
@@ -196,7 +203,7 @@ func GateWayNodeHandle(ProcessInstanceID int, CurrentNode Node, PrevTaskNode Nod
 			1、只有任务节点才能开启一个gw
 			2、直接把任务节点作为PrevTaskNode传入，就算下一个节点还是gw，重复此行为，之后的task节点还是可以获得上一个task节点
 		*/
-		err=ProcessNode(ProcessInstanceID, NextNode, PrevTaskNode)
+		err=ProcessNode(ProcessInstanceID, &NextNode, PrevTaskNode)
 		if err!=nil{
 			return err
 		}

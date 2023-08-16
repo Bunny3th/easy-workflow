@@ -60,7 +60,7 @@ func VariablesMap2Json(Variables map[string]string) (string, error) {
 }
 
 
-//解析变量,获取并设置其value,返回map
+//解析变量,获取并设置其value,返回map(注意，如果不是变量，则原样存储在map中)
 func ResolveVariables(ProcessInstanceID int, Variables []string) (map[string]string, error) {
 	result:=make(map[string]string)
 	for _, v := range Variables {

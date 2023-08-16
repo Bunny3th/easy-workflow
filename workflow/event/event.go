@@ -7,19 +7,18 @@ import (
 	"reflect"
 )
 
-type EventRun func(event *interface{}, ProcessInstanceID int, CurrentNode Node, PrevNode Node) error
-
-type Event struct{}
-
-func (e *Event) MyEvent(ProcessInstanceID int, CurrentNode Node, PrevNode Node) error {
-	fmt.Println("fucking shit!!!!!")
-	return nil
+type Method struct {
+	S interface{}
+	M reflect.Method
 }
 
+//事件池，所有的事件都注册在这里
+//var EventPool = make(map[string]reflect.Method)
+var EventPool = make(map[string]Method)
 
-var EventCache = make(map[string]reflect.Method)
-
-func ImportEvents(Struct *any) {
+//注册一个struct中的所有func
+//注意，func签名必须是func(struct *interface{}, ProcessInstanceID int, CurrentNode *Node, PrevNode Node) error
+func RegisterEvents(Struct any) {
 	StructValue := reflect.ValueOf(Struct)
 	StructType := StructValue.Type()
 
@@ -36,8 +35,8 @@ func ImportEvents(Struct *any) {
 			continue
 		}
 
-		if m.Type.In(2).ConvertibleTo(reflect.TypeOf(Node{})) != true {
-			log.Printf("warning:事件方法 %s 参数2不是Node类型,此函数不会被导入", m.Name)
+		if m.Type.In(2).ConvertibleTo(reflect.TypeOf(&Node{})) != true {
+			log.Printf("warning:事件方法 %s 参数2不是*Node类型,此函数不会被导入", m.Name)
 			continue
 		}
 
@@ -46,13 +45,59 @@ func ImportEvents(Struct *any) {
 			continue
 		}
 
-		errType := reflect.TypeOf((*error)(nil)).Elem()
-		if m.Type.Out(0).Implements(reflect.TypeOf(errType)) {
-			log.Printf("warning:事件方法 %s 返回参数不是error类型,此函数不会被导入", m.Name)
-			continue
-		}
+		//始终无法找到判断error类型的方式，暂时放弃
+		//errType := reflect.TypeOf((*error)(nil)).Elem()
+		//if m.Type.Out(0).Implements(errType) {
+		//	log.Printf("warning:事件方法 %s 返回参数不是error类型,此函数不会被导入", m.Name)
+		//	continue
+		//}
+		var method Method = Method{Struct, m}
 
-		EventCache[m.Name] = m
+		EventPool[m.Name] = method
 	}
 }
 
+//检查流程中定义事件是否已经被注册
+func CheckIfEventImported(ProcessNode Node) error {
+	//首先合并节点的PreEvents和ExitEvents
+	var events []string
+	events = append(events, ProcessNode.PreEvents...)
+	events = append(events, ProcessNode.ExitEvents...)
+	//判断该节点中是否所有事件都已经被注册
+	for _, event := range events {
+		if _, ok := EventPool[event]; !ok {
+			return fmt.Errorf("事件%s尚未导入", event)
+		}
+	}
+
+	return nil
+}
+
+//运行事件
+func RunEvent(EventName string, ProcessInstanceID int, CurrentNode *Node, PrevNode Node) error {
+	log.Printf("正在处理节点[%s]中事件[%s]",CurrentNode.NodeName,EventName)
+	//判断时候可以在事件池中获取事件
+	event, ok := EventPool[EventName]
+	if !ok {
+		return fmt.Errorf("事件%s未注册", EventName)
+	}
+
+	//拼装参数
+	arg := []reflect.Value{
+		reflect.ValueOf(event.S),
+		reflect.ValueOf(ProcessInstanceID),
+		reflect.ValueOf(CurrentNode),
+		reflect.ValueOf(PrevNode),
+	}
+
+	//运行func
+	result := event.M.Func.Call(arg)
+
+	//判断第一个返回参数是否为nil
+	if !result[0].IsNil() {
+
+		return fmt.Errorf("节点[%s]事件[%s]执行出错:%v",CurrentNode.NodeName,event.M.Name,result[0])
+	}
+
+	return nil
+}

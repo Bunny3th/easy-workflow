@@ -2,6 +2,7 @@ package engine
 
 import (
 	"easy-workflow/workflow/dao"
+	. "easy-workflow/workflow/event"
 	. "easy-workflow/workflow/model"
 	"errors"
 	"fmt"
@@ -38,6 +39,14 @@ func InstanceInit(ProcessID int, BusinessID string, VariableJson string) (int, N
 	nodes, err := GetProcCache(ProcessID)
 	if err != nil {
 		return 0, Node{}, err
+	}
+
+	//检查流程节点中的事件是否都已经注册
+	for _,node:=range nodes{
+		err=CheckIfEventImported(node)
+		if err != nil {
+			return 0, Node{}, err
+		}
 	}
 
 	//获取流程开始节点ID
@@ -85,7 +94,7 @@ func InstanceStart(ProcessID int, BusinessID string, Comment string, VariablesJs
 	}
 
 	//开始节点处理
-	err = StartNodeHandle(InstanceID, StartNode, Comment, VariablesJson)
+	err = StartNodeHandle(InstanceID, &StartNode, Comment, VariablesJson)
 	if err != nil {
 		return InstanceID, err
 	}

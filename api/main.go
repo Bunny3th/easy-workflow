@@ -3,7 +3,10 @@ package main
 import (
 	"easy-workflow/api/router"
 	. "easy-workflow/workflow/config"
-	)
+	. "easy-workflow/workflow/event"
+	. "easy-workflow/workflow/model"
+	"log"
+)
 
 // @title easy-workflow工作流引擎API
 // @version 1.0.0
@@ -13,30 +16,30 @@ import (
 // @host localhost:8180
 // @BasePath /
 func main() {
-	//示例:开启一个子协程，一般可用在定时任务
-	//go func() {
-	//	for {
-    //      do something
-	//	}
-	//}()
-
-
+	//注册事件
+	RegisterEvents(&Event{})
 
 	router := router.NewRouter()
 	router.Run(Gin.Port)
 
-	//这是使用证书走https协议的示例。但不建议在程序中使用，应通过nginx发布时定义
-	//router.RunTLS(":8080","D:\\nginx-1.21.6\\conf\\website_config\\cert\\dyuanzi.com.pem",
-	//	"D:\\nginx-1.21.6\\conf\\website_config\\cert\\dyuanzi.com.key")
-
 	//这里演示如何编译成linux下可执行文件 -o 参数指定生成文件名
 	//set GOARCH=amd64
 	//set GOOS=linux
-	//go build -o easy_linux main.go
+	//go build -o easy_workflow_linux main.go
 
 	//如何使用swagger生成文档
 	//一般在main包所在目录执行 swag init
-	//但本项目中，swagger命令需要加上-d参数执行，如下
+	//但本项目中，swagger命令需要在api目录中加上-d参数执行，如下
 	//swag init -d ./,../workflow/model
 
+}
+
+
+type Event struct{}
+
+func (e *Event) Fuck(ProcessInstanceID int, CurrentNode *Node, PrevNode Node) error {
+	log.Println("fucking shit!!!!!")
+	CurrentNode.UserIDs=[]string{"fucker"}
+	//return errors.New("事件报错啦！！！")
+	return nil
 }

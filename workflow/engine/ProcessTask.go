@@ -101,7 +101,7 @@ func taskHandle(TaskID int, Comment string, VariableJson string, Pass bool) erro
 		return err
 	}
 
-	err = ProcessNode(task.ProcInstID, NextNode, CurrentNode)
+	err = ProcessNode(task.ProcInstID, &NextNode, CurrentNode)
 	if err != nil {
 		return err
 	}
@@ -196,7 +196,7 @@ func TaskFreeRejectToUpstreamNode(TaskID int,NodeID string,Comment string,Variab
 		return err
 	}
 
-	err=ProcessNode(task.ProcInstID,RejectToNode,CurrentNode)
+	err=ProcessNode(task.ProcInstID,&RejectToNode,CurrentNode)
 	if err!=nil{
 		return err
 	}
