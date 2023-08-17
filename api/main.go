@@ -3,7 +3,7 @@ package main
 import (
 	"easy-workflow/api/router"
 	. "easy-workflow/workflow/config"
-	. "easy-workflow/workflow/event"
+	."easy-workflow/workflow/engine"
 	. "easy-workflow/workflow/model"
 	"log"
 )
@@ -16,11 +16,13 @@ import (
 // @host localhost:8180
 // @BasePath /
 func main() {
-	//注册事件
-	RegisterEvents(&Event{})
+
+
+	StartWorkFlow(DBConfig,&Event{})
+
 
 	router := router.NewRouter()
-	router.Run(Gin.Port)
+	router.Run(":8180")
 
 	//这里演示如何编译成linux下可执行文件 -o 参数指定生成文件名
 	//set GOARCH=amd64
@@ -42,4 +44,8 @@ func (e *Event) Fuck(ProcessInstanceID int, CurrentNode *Node, PrevNode Node) er
 	CurrentNode.UserIDs=[]string{"fucker"}
 	//return errors.New("事件报错啦！！！")
 	return nil
+}
+
+func DBConfig() {
+	DBConnect.DBConnectString = "goeasy:sNd%sLDjd*12@tcp(172.16.18.18:3306)/easy_workflow?charset=utf8mb4&parseTime=True&loc=Local"
 }

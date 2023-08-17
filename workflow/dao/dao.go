@@ -18,7 +18,7 @@ import (
 var DB *gorm.DB
 var err error
 
-func init() {
+func DBInit() {
 	//有关gorm.Config，可查看文档 https://gorm.cn/zh_CN/docs/gorm_config.html
 	dsn := DBConnect.DBConnectString
 	//gorm的默认日志是只打印错误和慢SQL,这里可以自定义日志级别
@@ -34,21 +34,25 @@ func init() {
 
 	DB, err = gorm.Open(mysql.Open(dsn), &gorm.Config{
 		NamingStrategy: schema.NamingStrategy{
-			TablePrefix: DBNamingStrategy.TablePrefix,     //表前缀
-			SingularTable: DBNamingStrategy.SingularTable, //使用单数表名，启用该选项，此时，`User` 的表名应该是 `user`
+			TablePrefix:   "",   //表前缀.如前缀为t_，则`User` 的表名应该是 `t_users`
+			SingularTable: true, //使用单数表名，启用该选项，此时，`User` 的表名应该是 `user`
 		},
 		Logger: myLogger,
 	})
 
-	//连接数据库失败，则重试
-	for {
+	//连接数据库失败，则重试10次,如果10次再不行，报错退出
+	for i := 0; i < 10; i++ {
 		if err == nil {
 			break
 		}
-		log.Println("db connect fail:", err)
+		log.Println("数据库连接失败", err)
 		//sleep 5秒 以免不断尝试消耗资源
 		time.Sleep(time.Second * 5)
 		DB, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	}
+
+	if err != nil {
+		log.Fatalln(err)
 	}
 
 	sqlDB, err := DB.DB()
