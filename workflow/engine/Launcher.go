@@ -3,6 +3,7 @@ package engine
 import (
 	"easy-workflow/workflow/dao"
 	. "easy-workflow/workflow/event"
+	"log"
 )
 
 type DataBaseConfigurator func()
@@ -19,4 +20,7 @@ func StartWorkFlow(DBConfigurator DataBaseConfigurator, EventStructs ...any) {
 	for _, s := range EventStructs {
 		RegisterEvents(s)
 	}
+	log.Println("================== easy workflow 启动成功 ================== ")
+	log.Print("                                                                                                            \n  ██████▓                       ▒                                                              █████        \n  ▒█████░                    ████░   ▒░                                                        ░████        \n   ████▓        ░███▓███▒   ███████      ░██▓▒▓███       ▓████▓░███  ░███████▓▒    ░▓████████   ████░ █████░\n   ████▓       ▓███▒  ████  ░████░       ████▒▒▒░         ▒█████▓▓▒ ████▓  ▒████  ▓████   ▒▓▓   ████░ ▒██░  \n  ░████▓  ░██▓ ████▒         ████▒         ░▒▒▓███▓       ▒████     ████▒  ░████  ████▓   ░     ████▒▓███▓  \n ░███████████▓  ▒███▓▒███▒   ▓█████      ▓██▓▒▒███░      ▓██████░    ▒████████▓    ▒████▓███▒  █████░  ▓███░\n                                                                                                            \n\n")
+
 }

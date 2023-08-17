@@ -3,10 +3,23 @@ package main
 import (
 	"easy-workflow/api/router"
 	. "easy-workflow/workflow/config"
-	."easy-workflow/workflow/engine"
+	. "easy-workflow/workflow/engine"
 	. "easy-workflow/workflow/model"
 	"log"
 )
+
+type Event struct{}
+
+func (e *Event) MyEvent_ChangeName(ProcessInstanceID int, CurrentNode *Node, PrevNode Node) error {
+	log.Println("我要把任务执行者名字改成王小虎~~~")
+	CurrentNode.UserIDs = []string{"王小虎"}
+	//return errors.New("事件报错啦！！！")
+	return nil
+}
+
+func DBConfig() {
+	DBConnect.DBConnectString = "goeasy:sNd%sLDjd*12@tcp(172.16.18.18:3306)/easy_workflow?charset=utf8mb4&parseTime=True&loc=Local"
+}
 
 // @title easy-workflow工作流引擎API
 // @version 1.0.0
@@ -17,10 +30,10 @@ import (
 // @BasePath /
 func main() {
 
+	//开启流程引擎
+	StartWorkFlow(DBConfig, &Event{})
 
-	StartWorkFlow(DBConfig,&Event{})
-
-
+	//开启web api
 	router := router.NewRouter()
 	router.Run(":8180")
 
@@ -33,19 +46,4 @@ func main() {
 	//一般在main包所在目录执行 swag init
 	//但本项目中，swagger命令需要在api目录中加上-d参数执行，如下
 	//swag init -d ./,../workflow/model
-
-}
-
-
-type Event struct{}
-
-func (e *Event) MyEvent_ChangeName(ProcessInstanceID int, CurrentNode *Node, PrevNode Node) error {
-	log.Println("我要把任务执行者名字改成王小虎~~~")
-	CurrentNode.UserIDs=[]string{"王小虎"}
-	//return errors.New("事件报错啦！！！")
-	return nil
-}
-
-func DBConfig() {
-	DBConnect.DBConnectString = "goeasy:sNd%sLDjd*12@tcp(172.16.18.18:3306)/easy_workflow?charset=utf8mb4&parseTime=True&loc=Local"
 }
