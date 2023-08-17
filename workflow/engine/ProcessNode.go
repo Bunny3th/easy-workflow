@@ -49,11 +49,16 @@ func ProcessNode(ProcessInstanceID int, CurrentNode *Node, PrevNode Node) error 
 		}
 	}
 
-	return nil
-
 	//这里处理退出事件
-	//do something
+	for _,event:=range CurrentNode.ExitEvents{
+		err:=RunEvent(event,ProcessInstanceID,CurrentNode,PrevNode)
+		if err!=nil{
+			return err
+		}
+	}
 
+
+	return nil
 }
 
 //开始节点处理 开始节点是一个特殊的任务节点，其特殊点在于:
@@ -79,6 +84,14 @@ func StartNodeHandle(ProcessInstanceID int, StartNode *Node, Comment string, Var
 	err = TaskPass(taskids[0], Comment, VariableJson)
 	if err != nil {
 		return err
+	}
+
+	//这里处理退出事件
+	for _,event:=range StartNode.ExitEvents{
+		err:=RunEvent(event,ProcessInstanceID,StartNode,Node{})
+		if err!=nil{
+			return err
+		}
 	}
 
 	return nil

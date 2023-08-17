@@ -17,6 +17,11 @@ func (e *Event) MyEvent_ChangeName(ProcessInstanceID int, CurrentNode *Node, Pre
 	return nil
 }
 
+func(e *Event) MyEvent_Notify(ProcessInstanceID int, CurrentNode *Node, PrevNode Node) error {
+	log.Printf("流程节点[%s]已经处理，赶紧通知老板",CurrentNode.NodeName)
+	return nil
+}
+
 func DBConfig() {
 	DBConnect.DBConnectString = "goeasy:sNd%sLDjd*12@tcp(172.16.18.18:3306)/easy_workflow?charset=utf8mb4&parseTime=True&loc=Local"
 }
