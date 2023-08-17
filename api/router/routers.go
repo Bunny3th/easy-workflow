@@ -3,14 +3,15 @@ package router
 import (
 	_ "easy-workflow/api/docs" // 导入swagger文档用的
 	. "easy-workflow/api/service"
-	. "easy-workflow/workflow/config"
 	"github.com/gin-gonic/gin"
 	"github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
+const GinMode string="debug"
+
 func NewRouter() *gin.Engine {
-	gin.SetMode(Gin.GinMode)
+	gin.SetMode(GinMode)
 	r := gin.New()
 
 	//这里定义了一些中间件。中间件可以看作是拦截器，请求传入后，需要经过
@@ -20,7 +21,7 @@ func NewRouter() *gin.Engine {
 
 
 	//只有在debug模式下才开启swagger
-	if Gin.GinMode == "debug" {
+	if GinMode == "debug" {
 		r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	}
 

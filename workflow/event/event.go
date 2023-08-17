@@ -8,7 +8,7 @@ import (
 )
 
 type Method struct {
-	S interface{}
+	S interface{} //method所在的struct，这是函数执行的第一个参数
 	M reflect.Method
 }
 
@@ -51,7 +51,7 @@ func RegisterEvents(Struct any) {
 		//	log.Printf("warning:事件方法 %s 返回参数不是error类型,此函数不会被导入", m.Name)
 		//	continue
 		//}
-		var method Method = Method{Struct, m}
+		var method = Method{Struct, m}
 
 		EventPool[m.Name] = method
 	}
@@ -75,7 +75,7 @@ func CheckIfEventImported(ProcessNode Node) error {
 
 //运行事件
 func RunEvent(EventName string, ProcessInstanceID int, CurrentNode *Node, PrevNode Node) error {
-	log.Printf("正在处理节点[%s]中事件[%s]",CurrentNode.NodeName,EventName)
+	log.Printf("正在处理节点[%s]中事件[%s]", CurrentNode.NodeName, EventName)
 	//判断时候可以在事件池中获取事件
 	event, ok := EventPool[EventName]
 	if !ok {
@@ -96,7 +96,7 @@ func RunEvent(EventName string, ProcessInstanceID int, CurrentNode *Node, PrevNo
 	//判断第一个返回参数是否为nil
 	if !result[0].IsNil() {
 
-		return fmt.Errorf("节点[%s]事件[%s]执行出错:%v",CurrentNode.NodeName,event.M.Name,result[0])
+		return fmt.Errorf("节点[%s]事件[%s]执行出错:%v", CurrentNode.NodeName, event.M.Name, result[0])
 	}
 
 	return nil

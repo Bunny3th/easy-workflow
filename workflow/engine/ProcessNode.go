@@ -98,10 +98,16 @@ func TaskNodeHandle(ProcessInstanceID int, CurrentNode *Node, PrevNode Node) ([]
 		return nil,err
 	}
 
-	//生成用户数组
-	var users []string
+	//使用map去重，因为有可能某几个变量指向同一个用户，重复的用户会产生重复的任务
+	var usersMap=make(map[string]string)
 	for _, v := range kv {
-		users = append(users, v)
+		usersMap[v] = ""
+	}
+
+	//生成user数组
+	var users []string
+	for k,_:=range usersMap{
+		users=append(users,k)
 	}
 
 	//如果没有处理人，则任务无法分配
