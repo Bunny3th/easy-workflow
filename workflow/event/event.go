@@ -2,6 +2,7 @@ package event
 
 import (
 	. "easy-workflow/workflow/model"
+	. "easy-workflow/workflow/util"
 	"fmt"
 	"log"
 	"reflect"
@@ -45,19 +46,18 @@ func RegisterEvents(Struct any) {
 			continue
 		}
 
-		//始终无法找到判断error类型的方式，暂时放弃
-		//errType := reflect.TypeOf((*error)(nil)).Elem()
-		//if m.Type.Out(0).Implements(errType) {
-		//	log.Printf("warning:事件方法 %s 返回参数不是error类型,此函数不会被导入", m.Name)
-		//	continue
-		//}
+		if !TypeIsError(m.Type.Out(0)) {
+			log.Printf("warning:事件方法 %s 返回参数不是error类型,此函数不会被导入", m.Name)
+			continue
+		}
+
 		var method = Method{Struct, m}
 
 		EventPool[m.Name] = method
 	}
 }
 
-//检查流程中定义事件是否已经被注册
+//检查流程节点中事件是否已经被注册
 func CheckIfEventImported(ProcessNode Node) error {
 	//首先合并节点的PreEvents和ExitEvents
 	var events []string

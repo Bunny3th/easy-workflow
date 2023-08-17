@@ -39,9 +39,9 @@ func main() {
 
 type Event struct{}
 
-func (e *Event) Fuck(ProcessInstanceID int, CurrentNode *Node, PrevNode Node) error {
-	log.Println("fucking shit!!!!!")
-	CurrentNode.UserIDs=[]string{"fucker"}
+func (e *Event) MyEvent_ChangeName(ProcessInstanceID int, CurrentNode *Node, PrevNode Node) error {
+	log.Println("我要把任务执行者名字改成王小虎~~~")
+	CurrentNode.UserIDs=[]string{"王小虎"}
 	//return errors.New("事件报错啦！！！")
 	return nil
 }
