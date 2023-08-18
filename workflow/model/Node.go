@@ -5,7 +5,7 @@ type NodeType int
 const (
 	RootNode    NodeType = 0 //开始(根)节点
 	TaskNode    NodeType = 1 //任务节点,指的是需要人完成的节点
-	GateWayNode NodeType = 2 //参考activiti的网关.目前只实现了排他网关
+	GateWayNode NodeType = 2 //参考activiti的网关.此项目中使用混合网关,等于activiti中排他、并行网关、包含网关的混合体
 	EndNode     NodeType = 3 //结束节点,结束节点不需要人参与，到了此节点，则流程实例完成
 )
 
@@ -27,7 +27,7 @@ type Node struct {
 	NodeType    NodeType //节点类型 0:开始节点 1:任务节点,指的是需要人完成的节点 2:参考activiti的网关.目前只实现了排他网关 3:结束节点
 	PrevNodeIDs []string //上级节点(不管是任务节点还是结束节点，因为分支的存在，所以它的上级节点可能都会有多个)
 	UserIDs     []string //节点处理人数组
-	//Role        []string //节点处理角色数组。注意，一旦使用角色，则该节点默认不能会签。因为系统无法预先知道角色中存在多少用户。除非通过事件修改.暂时不用
+	Roles        []string //节点处理角色数组。注意，因为系统无法预先知道角色中存在多少用户，所以必须用StartEvents解析角色，将角色中的用户加到UserIDs中
 	GWConfig    HybridGateway //网关。只有在节点类型为GateWay的情况下此字段才会有值
 	IsCosigned  int8          //是否会签  会签的情况下，需要所有人通过才能进行下一节点，只要有一人反对，则退回上一节点
 	StartEvents []string      //节点开始时触发的事件
