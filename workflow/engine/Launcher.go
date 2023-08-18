@@ -2,7 +2,6 @@ package engine
 
 import (
 	"easy-workflow/workflow/dao"
-	. "easy-workflow/workflow/event"
 	"log"
 )
 

@@ -3,7 +3,7 @@ package model
 type NodeType int
 
 const (
-	RootNode    NodeType = 0 //开始节点
+	RootNode    NodeType = 0 //开始(根)节点
 	TaskNode    NodeType = 1 //任务节点,指的是需要人完成的节点
 	GateWayNode NodeType = 2 //参考activiti的网关.目前只实现了排他网关
 	EndNode     NodeType = 3 //结束节点,结束节点不需要人参与，到了此节点，则流程实例完成
@@ -26,11 +26,14 @@ type Node struct {
 	NodeName    string   //节点名字
 	NodeType    NodeType //节点类型 0:开始节点 1:任务节点,指的是需要人完成的节点 2:参考activiti的网关.目前只实现了排他网关 3:结束节点
 	PrevNodeIDs []string //上级节点(不管是任务节点还是结束节点，因为分支的存在，所以它的上级节点可能都会有多个)
-	//NextNodeIDs []string //下级节点(节点可以有N个直接下级节点)  是否需要下级节点？感觉可以不用。需要，因为生成task时候需要知道下级是谁，或者可以通过计算得知
 	UserIDs     []string //节点处理人数组
 	//Role        []string //节点处理角色数组。注意，一旦使用角色，则该节点默认不能会签。因为系统无法预先知道角色中存在多少用户。除非通过事件修改.暂时不用
-	GWConfig HybridGateway //网关。只有在节点类型为GateWay的情况下此字段才会有值
-	IsCosigned int8     //是否会签  会签的情况下，需要所有人通过才能进行下一节点，只要有一人反对，则退回上一节点
-	PreEvents  []string //前置事件
-	ExitEvents []string //退出事件
+	GWConfig    HybridGateway //网关。只有在节点类型为GateWay的情况下此字段才会有值
+	IsCosigned  int8          //是否会签  会签的情况下，需要所有人通过才能进行下一节点，只要有一人反对，则退回上一节点
+	StartEvents []string      //节点开始时触发的事件
+	EndEvents   []string      //节点结束时触发的事件
 }
+
+/*关于事件的注意点：
+结束节点只处理StartEvents，不处理EndEvents。因为结束节点只是把数据库表中流程数据做归档，不涉及到任务分配、节点路径分配等，所以没有必要再做结束事件处理。
+*/

@@ -1,4 +1,4 @@
-package event
+package engine
 
 import (
 	. "easy-workflow/workflow/model"
@@ -8,14 +8,14 @@ import (
 	"reflect"
 )
 
-type Method struct {
+type method struct {
 	S interface{} //method所在的struct，这是函数执行的第一个参数
 	M reflect.Method
 }
 
 //事件池，所有的事件都注册在这里
 //var EventPool = make(map[string]reflect.Method)
-var EventPool = make(map[string]Method)
+var EventPool = make(map[string]method)
 
 //注册一个struct中的所有func
 //注意，func签名必须是func(struct *interface{}, ProcessInstanceID int, CurrentNode *Node, PrevNode Node) error
@@ -51,18 +51,18 @@ func RegisterEvents(Struct any) {
 			continue
 		}
 
-		var method = Method{Struct, m}
+		var method = method{Struct, m}
 
 		EventPool[m.Name] = method
 	}
 }
 
 //检查流程节点中事件是否已经被注册
-func CheckIfEventImported(ProcessNode Node) error {
-	//首先合并节点的PreEvents和ExitEvents
+func CheckIfEventRegistered(ProcessNode Node) error {
+	//首先合并节点的开始和结束事件
 	var events []string
-	events = append(events, ProcessNode.PreEvents...)
-	events = append(events, ProcessNode.ExitEvents...)
+	events = append(events, ProcessNode.StartEvents...)
+	events = append(events, ProcessNode.EndEvents...)
 	//判断该节点中是否所有事件都已经被注册
 	for _, event := range events {
 		if _, ok := EventPool[event]; !ok {
@@ -74,30 +74,31 @@ func CheckIfEventImported(ProcessNode Node) error {
 }
 
 //运行事件
-func RunEvent(EventName string, ProcessInstanceID int, CurrentNode *Node, PrevNode Node) error {
-	log.Printf("正在处理节点[%s]中事件[%s]", CurrentNode.NodeName, EventName)
-	//判断时候可以在事件池中获取事件
-	event, ok := EventPool[EventName]
-	if !ok {
-		return fmt.Errorf("事件%s未注册", EventName)
+func RunEvents(EventNames []string, ProcessInstanceID int, CurrentNode *Node, PrevNode Node) error {
+	for _,e:=range EventNames {
+		log.Printf("正在处理节点[%s]中事件[%s]", CurrentNode.NodeName, e)
+		//判断是否可以在事件池中获取事件
+		event, ok := EventPool[e]
+		if !ok {
+			return fmt.Errorf("事件%s未注册", e)
+		}
+
+		//拼装参数
+		arg := []reflect.Value{
+			reflect.ValueOf(event.S),
+			reflect.ValueOf(ProcessInstanceID),
+			reflect.ValueOf(CurrentNode),
+			reflect.ValueOf(PrevNode),
+		}
+
+		//运行func
+		result := event.M.Func.Call(arg)
+
+		//判断第一个返回参数是否为nil
+		if !result[0].IsNil() {
+			return fmt.Errorf("节点[%s]事件[%s]执行出错:%v", CurrentNode.NodeName, event.M.Name, result[0])
+		}
 	}
-
-	//拼装参数
-	arg := []reflect.Value{
-		reflect.ValueOf(event.S),
-		reflect.ValueOf(ProcessInstanceID),
-		reflect.ValueOf(CurrentNode),
-		reflect.ValueOf(PrevNode),
-	}
-
-	//运行func
-	result := event.M.Func.Call(arg)
-
-	//判断第一个返回参数是否为nil
-	if !result[0].IsNil() {
-
-		return fmt.Errorf("节点[%s]事件[%s]执行出错:%v", CurrentNode.NodeName, event.M.Name, result[0])
-	}
-
 	return nil
 }
+

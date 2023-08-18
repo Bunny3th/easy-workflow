@@ -2,7 +2,6 @@ package engine
 
 import (
 	"easy-workflow/workflow/dao"
-	. "easy-workflow/workflow/event"
 	. "easy-workflow/workflow/model"
 	"errors"
 	"fmt"
@@ -43,7 +42,7 @@ func InstanceInit(ProcessID int, BusinessID string, VariableJson string) (int, N
 
 	//检查流程节点中的事件是否都已经注册
 	for _,node:=range nodes{
-		err=CheckIfEventImported(node)
+		err=CheckIfEventRegistered(node)
 		if err != nil {
 			return 0, Node{}, err
 		}

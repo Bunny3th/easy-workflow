@@ -11,14 +11,15 @@ import (
 type Event struct{}
 
 func (e *Event) MyEvent_ChangeName(ProcessInstanceID int, CurrentNode *Node, PrevNode Node) error {
-	log.Println("我要把任务执行者名字改成王小虎~~~")
-	CurrentNode.UserIDs = []string{"王小虎"}
+	//log.Println("我要把任务执行者名字改成王小虎~~~")
+	//CurrentNode.UserIDs = []string{"王小虎"}
 	//return errors.New("事件报错啦！！！")
+	log.Printf("--------流程节点[%s]开始-------",CurrentNode.NodeName)
 	return nil
 }
 
 func(e *Event) MyEvent_Notify(ProcessInstanceID int, CurrentNode *Node, PrevNode Node) error {
-	log.Printf("流程节点[%s]已经处理，赶紧通知老板",CurrentNode.NodeName)
+	log.Printf("--------流程节点[%s]结束--------",CurrentNode.NodeName)
 	return nil
 }
 

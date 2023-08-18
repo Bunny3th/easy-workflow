@@ -84,6 +84,9 @@ func taskHandle(TaskID int, Comment string, VariableJson string, Pass bool) erro
 		return nil
 	}
 
+	//如果任务所在节点已处理完毕，此时：
+	//1、处理节点结束事件
+	//2、开始处理下一个节点
 	task, err = GetTaskInfo(TaskID)
 	if err != nil {
 		return err
@@ -101,6 +104,24 @@ func taskHandle(TaskID int, Comment string, VariableJson string, Pass bool) erro
 		return err
 	}
 
+	//当前task上一个节点.这里要注意，如果当前节点是开始节点，则上一个节点是空节点
+	var PrevNode Node
+	if CurrentNode.NodeType == RootNode {
+		PrevNode = Node{}
+	} else {
+		PrevNode, err = GetInstanceNode(task.ProcInstID, task.PrevNodeID)
+		if err != nil {
+			return err
+		}
+	}
+
+	//这里处理节点结束事件
+	err = RunEvents(CurrentNode.EndEvents, task.ProcInstID, &CurrentNode, PrevNode)
+	if err != nil {
+		return err
+	}
+
+	//开始处理下一个节点
 	err = ProcessNode(task.ProcInstID, &NextNode, CurrentNode)
 	if err != nil {
 		return err
@@ -140,14 +161,13 @@ func GetTaskFinishedList(UserID string) ([]Task, error) {
 }
 
 //流出task所在节点的上流节点
-func TaskUpstreamNodeList(TaskID int) ([]Node,error){
-	task,err:=GetTaskInfo(TaskID)
-	if err!=nil{
-		return nil,err
+func TaskUpstreamNodeList(TaskID int) ([]Node, error) {
+	task, err := GetTaskInfo(TaskID)
+	if err != nil {
+		return nil, err
 	}
 
-
-	sql:="WITH RECURSIVE tmp(`node_id`,node_name,`prev_node_id`,`node_type`) AS " +
+	sql := "WITH RECURSIVE tmp(`node_id`,node_name,`prev_node_id`,`node_type`) AS " +
 		"(SELECT `node_id`,node_name,`prev_node_id`,`node_type` " +
 		"FROM `proc_execution` WHERE node_id=? " +
 		"UNION ALL " +
@@ -155,15 +175,15 @@ func TaskUpstreamNodeList(TaskID int) ([]Node,error){
 		"FROM `proc_execution` a JOIN tmp b ON a.node_id=b.`prev_node_id`) " +
 		"SELECT node_id,node_name,prev_node_id,node_type FROM tmp WHERE node_type!=2 AND node_id!=?;"
 	var nodes []Node
-	if _,err:=ExecSQL(sql,&nodes,task.NodeID,task.NodeID);err==nil{
-		return nodes,nil
-	}else{
-		return nil,err
+	if _, err := ExecSQL(sql, &nodes, task.NodeID, task.NodeID); err == nil {
+		return nodes, nil
+	} else {
+		return nil, err
 	}
 }
 
 //自由驳回到任意一个上游节点
-func TaskFreeRejectToUpstreamNode(TaskID int,NodeID string,Comment string,VariableJson string) error{
+func TaskFreeRejectToUpstreamNode(TaskID int, NodeID string, Comment string, VariableJson string) error {
 
 	type result struct {
 		Error            string
@@ -179,25 +199,25 @@ func TaskFreeRejectToUpstreamNode(TaskID int,NodeID string,Comment string,Variab
 		return errors.New(r.Error)
 	}
 
-	task,err:=GetTaskInfo(TaskID)
-	if err!=nil{
+	task, err := GetTaskInfo(TaskID)
+	if err != nil {
 		return err
 	}
 
 	//当前task所在节点
 	CurrentNode, err := GetInstanceNode(task.ProcInstID, task.NodeID)
-	if err!=nil{
+	if err != nil {
 		return err
 	}
 
 	//reject to 节点
-	RejectToNode,err := GetInstanceNode(task.ProcInstID, NodeID)
-	if err!=nil{
+	RejectToNode, err := GetInstanceNode(task.ProcInstID, NodeID)
+	if err != nil {
 		return err
 	}
 
-	err=ProcessNode(task.ProcInstID,&RejectToNode,CurrentNode)
-	if err!=nil{
+	err = ProcessNode(task.ProcInstID, &RejectToNode, CurrentNode)
+	if err != nil {
 		return err
 	}
 	return nil
