@@ -24,12 +24,12 @@ BPMBN 2.0标准是必须要有开始和结束节点的。但是思考下来，�
 type Node struct {
 	NodeID      string   //节点名称
 	NodeName    string   //节点名字
-	NodeType    NodeType //节点类型 0:开始节点 1:任务节点,指的是需要人完成的节点 2:参考activiti的网关.目前只实现了排他网关 3:结束节点
+	NodeType    NodeType //节点类型 0:开始节点 1:任务节点,指的是需要人完成的节点 2:网关 3:结束节点
 	PrevNodeIDs []string //上级节点(不管是任务节点还是结束节点，因为分支的存在，所以它的上级节点可能都会有多个)
 	UserIDs     []string //节点处理人数组
 	Roles        []string //节点处理角色数组。注意，因为系统无法预先知道角色中存在多少用户，所以必须用StartEvents解析角色，将角色中的用户加到UserIDs中
 	GWConfig    HybridGateway //网关。只有在节点类型为GateWay的情况下此字段才会有值
-	IsCosigned  int8          //是否会签  会签的情况下，需要所有人通过才能进行下一节点，只要有一人反对，则退回上一节点
+	IsCosigned  int8          //是否会签  只有任务节点才会用到，会签的情况下需要所有任务通过才能进行下一节点，只要有一人反对，则整个节点驳回
 	StartEvents []string      //节点开始时触发的事件
 	EndEvents   []string      //节点结束时触发的事件
 }
