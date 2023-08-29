@@ -155,6 +155,7 @@ func ProcInst_Revoke(c *gin.Context) {
 // @Param        TaskID  formData int  true  "任务ID" example(1)
 // @Param        Comment  formData string  false  "评论意见" example("同意请假")
 // @Param        VariablesJson  formData string  false  "变量(Json)" example("{"User":"001"}")
+// @Param        DirectlyToWhoRejectedMe  formData bool  true  "任务通过(pass)时直接返回到上一个驳回我的节点" example(false)
 // @Success      200  {object}  string "ok"
 // @Failure      400  {object}  string 报错信息
 // @Router       /process/task/pass [post]
@@ -162,8 +163,17 @@ func Task_Pass(c *gin.Context) {
 	TaskID, _ := strconv.Atoi(c.PostForm("TaskID"))
 	Comment := c.PostForm("Comment")
 	VariableJson := c.PostForm("VariableJson")
+	var DirectlyToWhoRejectedMe bool
+	if c.PostForm("DirectlyToWhoRejectedMe")==""{
+		DirectlyToWhoRejectedMe=false
+	}else{
+		DirectlyToWhoRejectedMe, Err =strconv.ParseBool(c.PostForm("DirectlyToWhoRejectedMe"))
+		if Err !=nil{
+			c.JSON(400,Err)
+		}
+	}
 
-	if err := TaskPass(TaskID, Comment, VariableJson); err == nil {
+	if err := TaskPass(TaskID, Comment, VariableJson,DirectlyToWhoRejectedMe); err == nil {
 		c.JSON(200, "ok")
 	} else {
 		c.JSON(400, err.Error())
