@@ -67,7 +67,7 @@ func StartNodeHandle(ProcessInstanceID int, StartNode *Node, Comment string, Var
 	taskids, err := TaskNodeHandle(ProcessInstanceID, StartNode, Node{})
 
 	//完成task,并获取下一步NodeID
-	err = TaskPass(taskids[0], Comment, VariableJson)
+	err = TaskPass(taskids[0], Comment, VariableJson,false)
 	if err != nil {
 		return err
 	}

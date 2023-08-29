@@ -36,18 +36,31 @@ func CreateTask(ProcessInstanceID int, NodeID string, PrevNodeID string, UserIDs
 	return r, nil
 }
 
+//task做通过、处理时可能会有一些附加功能，放在这里。
+//目前只实现DirectlyToWhoRejectedMe，即任务通过时直接返回到上一个驳回我的节点。
+//考虑这种情况：假设A、B、C、D、E 共5个任务节点节点，E节点（老板）使用自由驳回功能，直接驳回到A（员工），嗯就是这么任性
+//传统情况下，A根据领导指示做修改重新提交后，B、C、D几个主管都要再审核一遍，来来回回，不仅效率低，由于增加工作量，各各一肚子怨气
+//此时老板发话：芝麻绿豆大的事，B、C、D不用再参合了，小A你直接提我这边吧
+//此时使用DirectlyToWhoRejectedMe，A直接提交到上次驳回他的E，皆大欢喜
+//***需要注意的事，此功能只有在A是非会签节点时才能使用，否则试想，若节点中有甲乙两人，一人使用普通的pass，一人使用此时使用DirectlyToWhoRejectedMe，
+//此时出现分歧，难道要打一架解决？
+type taskOption struct {
+	DirectlyToWhoRejectedMe bool //任务通过(pass)时直接返回到上一个驳回我的节点
+}
+
 //完成任务，在本节点处理完毕的情况下会自动处理下一个节点
-func TaskPass(TaskID int, Comment string, VariableJson string) error {
-	return taskHandle(TaskID, Comment, VariableJson, true)
+func TaskPass(TaskID int, Comment string, VariableJson string, DirectlyToWhoRejectedMe bool) error {
+	taskOption := taskOption{DirectlyToWhoRejectedMe: DirectlyToWhoRejectedMe}
+	return taskHandle(TaskID, Comment, VariableJson, true, taskOption)
 }
 
 //驳回任务，在本节点处理完毕的情况下会自动处理下一个节点
 func TaskReject(TaskID int, Comment string, VariableJson string) error {
-	return taskHandle(TaskID, Comment, VariableJson, false)
+	return taskHandle(TaskID, Comment, VariableJson, false, taskOption{})
 }
 
 //任务处理
-func taskHandle(TaskID int, Comment string, VariableJson string, Pass bool) error {
+func taskHandle(TaskID int, Comment string, VariableJson string, Pass bool, option taskOption) error {
 	//获取节点信息
 	task, err := GetTaskInfo(TaskID)
 	if err != nil {
@@ -61,7 +74,7 @@ func taskHandle(TaskID int, Comment string, VariableJson string, Pass bool) erro
 	//判断是通过还是驳回
 	var sql string
 	if Pass == true {
-		sql = "call sp_task_pass(?,?,?)"
+		sql = "call sp_task_pass(?,?,?,?)"
 	} else {
 		sql = "call sp_task_reject(?,?,?)"
 	}
@@ -71,7 +84,12 @@ func taskHandle(TaskID int, Comment string, VariableJson string, Pass bool) erro
 		Next_opt_node_id string
 	}
 	var r result
-	_, err = ExecSQL(sql, &r, TaskID, Comment, VariableJson)
+	if Pass == true {
+		_, err = ExecSQL(sql, &r, TaskID, Comment, VariableJson, option.DirectlyToWhoRejectedMe)
+	} else {
+		_, err = ExecSQL(sql, &r, TaskID, Comment, VariableJson)
+	}
+
 	if err != nil {
 		return err
 	}
@@ -184,6 +202,7 @@ func TaskUpstreamNodeList(TaskID int) ([]Node, error) {
 
 //自由驳回到任意一个上游节点
 func TaskFreeRejectToUpstreamNode(TaskID int, NodeID string, Comment string, VariableJson string) error {
+	//思考:不论是否会签节点，自由驳回功能都可以使用。因为会签节点任意一人驳回就算驳回，其他人已经没有机会再做操作。
 
 	type result struct {
 		Error            string

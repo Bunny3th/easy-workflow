@@ -16,7 +16,7 @@ import (
 //gorm参考文档 https://gorm.cn/zh_CN/docs/
 
 var DB *gorm.DB
-var err error
+var Err error
 
 func DBInit() {
 	//有关gorm.Config，可查看文档 https://gorm.cn/zh_CN/docs/gorm_config.html
@@ -32,7 +32,7 @@ func DBInit() {
 		},
 	)
 
-	DB, err = gorm.Open(mysql.Open(dsn), &gorm.Config{
+	DB, Err = gorm.Open(mysql.Open(dsn), &gorm.Config{
 		NamingStrategy: schema.NamingStrategy{
 			TablePrefix:   "",   //表前缀.如前缀为t_，则`User` 的表名应该是 `t_users`
 			SingularTable: true, //使用单数表名，启用该选项，此时，`User` 的表名应该是 `user`
@@ -42,17 +42,17 @@ func DBInit() {
 
 	//连接数据库失败，则重试10次,如果10次再不行，报错退出
 	for i := 0; i < 10; i++ {
-		if err == nil {
+		if Err == nil {
 			break
 		}
-		log.Println("数据库连接失败", err)
+		log.Println("数据库连接失败", Err)
 		//sleep 5秒 以免不断尝试消耗资源
 		time.Sleep(time.Second * 5)
-		DB, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
+		DB, Err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	}
 
-	if err != nil {
-		log.Fatalln(err)
+	if Err != nil {
+		log.Fatalln(Err)
 	}
 
 	sqlDB, err := DB.DB()
