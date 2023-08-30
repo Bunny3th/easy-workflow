@@ -34,6 +34,8 @@ func NewRouter() *gin.Engine {
 	r.POST("/process/inst/revoke",ProcInst_Revoke)
 
 	r.POST("/process/task/pass",Task_Pass)
+	r.POST("/process/task/pass/directly",Task_Pass_DirectlyToWhoRejectedMe)
+
 	r.POST("/process/task/reject",Task_Reject)
 	r.POST("/process/task/reject/free",Task_FreeRejectToUpstreamNode)
 	r.GET("/process/task/todo",Task_ToDoList)

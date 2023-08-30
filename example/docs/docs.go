@@ -298,6 +298,7 @@ const docTemplate = `{
         },
         "/process/task/pass": {
             "post": {
+                "description": "任务通过后根据流程定义，进入下一个节点进行处理",
                 "produces": [
                     "application/json"
                 ],
@@ -327,14 +328,56 @@ const docTemplate = `{
                         "description": "变量(Json)",
                         "name": "VariablesJson",
                         "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "ok",
+                        "schema": {
+                            "type": "string"
+                        }
                     },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/process/task/pass/directly": {
+            "post": {
+                "description": "此功能只有在非会签节点时才能使用",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "任务"
+                ],
+                "summary": "任务通过后流程直接返回到上一个驳回我的节点",
+                "parameters": [
                     {
-                        "type": "boolean",
-                        "example": true,
-                        "description": "任务通过(pass)时直接返回到上一个驳回我的节点",
-                        "name": "DirectlyToWhoRejectedMe",
+                        "type": "integer",
+                        "example": 1,
+                        "description": "任务ID",
+                        "name": "TaskID",
                         "in": "formData",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "example": "\"同意请假\"",
+                        "description": "评论意见",
+                        "name": "Comment",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "example": "\"{\"User\":\"001\"}\"",
+                        "description": "变量(Json)",
+                        "name": "VariablesJson",
+                        "in": "formData"
                     }
                 ],
                 "responses": {

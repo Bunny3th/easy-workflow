@@ -361,6 +361,7 @@ paths:
       - 任务
   /process/task/pass:
     post:
+      description: 任务通过后根据流程定义，进入下一个节点进行处理
       parameters:
       - description: 任务ID
         example: 1
@@ -378,12 +379,6 @@ paths:
         in: formData
         name: VariablesJson
         type: string
-      - description: 任务通过(pass)时直接返回到上一个驳回我的节点
-        example: true
-        in: formData
-        name: DirectlyToWhoRejectedMe
-        required: true
-        type: boolean
       produces:
       - application/json
       responses:
@@ -396,6 +391,40 @@ paths:
           schema:
             type: string
       summary: 任务通过
+      tags:
+      - 任务
+  /process/task/pass/directly:
+    post:
+      description: 此功能只有在非会签节点时才能使用
+      parameters:
+      - description: 任务ID
+        example: 1
+        in: formData
+        name: TaskID
+        required: true
+        type: integer
+      - description: 评论意见
+        example: '"同意请假"'
+        in: formData
+        name: Comment
+        type: string
+      - description: 变量(Json)
+        example: '"{"User":"001"}"'
+        in: formData
+        name: VariablesJson
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ok
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+      summary: 任务通过后流程直接返回到上一个驳回我的节点
       tags:
       - 任务
   /process/task/reject:
