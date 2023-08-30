@@ -73,10 +73,19 @@ func taskHandle(TaskID int, Comment string, VariableJson string, Pass bool, opti
 
 	//判断是通过还是驳回
 	var sql string
-	if Pass == true {
+	if Pass == true { //通过
 		sql = "call sp_task_pass(?,?,?,?)"
-	} else {
+	} else { //驳回
 		sql = "call sp_task_reject(?,?,?)"
+		//获取task所在的node
+		taskNode, err := GetInstanceNode(task.ProcInstID, task.NodeID)
+		if err != nil {
+			return err
+		}
+		//起始节点不能做驳回
+		if taskNode.NodeType == RootNode {
+			return errors.New("起始节点无法驳回!")
+		}
 	}
 
 	type result struct {
