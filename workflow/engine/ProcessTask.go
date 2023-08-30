@@ -187,7 +187,7 @@ func GetTaskFinishedList(UserID string) ([]Task, error) {
 	return tasks, nil
 }
 
-//流出task所在节点的上流节点
+//根据流程定义,列出task所在节点的所有上流节点
 func TaskUpstreamNodeList(TaskID int) ([]Node, error) {
 	task, err := GetTaskInfo(TaskID)
 	if err != nil {
