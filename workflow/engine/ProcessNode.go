@@ -75,7 +75,7 @@ func StartNodeHandle(ProcessInstanceID int, StartNode *Node, Comment string, Var
 	return nil
 }
 
-//结束节点处理
+//结束节点处理 结束节点只做收尾工作，将数据库中此流程实例产生的数据归档
 func EndNodeHandle(ProcessInstanceID int) error {
 	_, err := dao.ExecSQL("call sp_proc_inst_end(?,?)", nil, ProcessInstanceID, 1)
 	return err
