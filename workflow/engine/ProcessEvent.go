@@ -75,7 +75,7 @@ func CheckIfEventRegistered(ProcessNode Node) error {
 //运行事件
 func RunEvents(EventNames []string, ProcessInstanceID int, CurrentNode *Node, PrevNode Node) error {
 	for _,e:=range EventNames {
-		log.Printf("正在处理节点[%s]中事件[%s]", CurrentNode.NodeName, e)
+		//log.Printf("正在处理节点[%s]中事件[%s]", CurrentNode.NodeName, e)
 		//判断是否可以在事件池中获取事件
 		event, ok := EventPool[e]
 		if !ok {

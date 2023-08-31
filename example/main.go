@@ -14,14 +14,23 @@ var RoleUser = make(map[string][]string)
 type Event struct{}
 
 func (e *Event) MyEvent_End(ProcessInstanceID int, CurrentNode *Node, PrevNode Node) error {
-	log.Printf("--------流程节点[%s]结束，可以做一些处理，比如通知流程开始人，节点到了哪个步骤-------", CurrentNode.NodeName)
+	//可以做一些处理，比如通知流程开始人，节点到了哪个步骤
+	processName,err:=GetProcessNameByInstanceID(ProcessInstanceID)
+	if err!=nil{
+		return err
+	}
+	log.Printf("--------流程[%s]节点[%s]结束-------",processName, CurrentNode.NodeName)
 	return nil
 }
 
 func (e *Event) MyEvent_Notify(ProcessInstanceID int, CurrentNode *Node, PrevNode Node) error {
-	log.Printf("--------流程节点[%s]，通知节点中对应人员--------", CurrentNode.NodeName)
+	processName,err:=GetProcessNameByInstanceID(ProcessInstanceID)
+	if err!=nil{
+		return err
+	}
+	log.Printf("--------流程[%s]节点[%s]，通知节点中对应人员--------",processName, CurrentNode.NodeName)
 	if CurrentNode.NodeType==EndNode{
-		log.Printf("============================== 流程结束 ==============================")
+		log.Printf("============================== 流程[%s]结束 ==============================",processName)
 	}else{
 		for _, user := range CurrentNode.UserIDs {
 			log.Printf("通知用户[%s],抓紧去处理", user)
@@ -32,7 +41,11 @@ func (e *Event) MyEvent_Notify(ProcessInstanceID int, CurrentNode *Node, PrevNod
 
 //解析角色
 func (e *Event) MyEvent_ResolveRoles(ProcessInstanceID int, CurrentNode *Node, PrevNode Node) error {
-	log.Printf("--------流程节点[%s],开始解析角色--------", CurrentNode.NodeName)
+	processName,err:=GetProcessNameByInstanceID(ProcessInstanceID)
+	if err!=nil{
+		return err
+	}
+	log.Printf("--------流程[%s]节点[%s],开始解析角色--------",processName, CurrentNode.NodeName)
 	//把用户库中对应角色的用户全部放到CurrentNode.UserIDs中去
 	for _, role := range CurrentNode.Roles {
 		if users, ok := RoleUser[role]; ok {
