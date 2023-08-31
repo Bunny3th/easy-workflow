@@ -15,16 +15,17 @@ type Event struct{}
 
 func (e *Event) MyEvent_End(ProcessInstanceID int, CurrentNode *Node, PrevNode Node) error {
 	log.Printf("--------流程节点[%s]结束，可以做一些处理，比如通知流程开始人，节点到了哪个步骤-------", CurrentNode.NodeName)
-	if CurrentNode.NodeType==EndNode{
-		log.Printf("============================== 流程结束 ==============================")
-	}
 	return nil
 }
 
 func (e *Event) MyEvent_Notify(ProcessInstanceID int, CurrentNode *Node, PrevNode Node) error {
 	log.Printf("--------流程节点[%s]，通知节点中对应人员--------", CurrentNode.NodeName)
-	for _, user := range CurrentNode.UserIDs {
-		log.Printf("通知用户[%s],抓紧去处理", user)
+	if CurrentNode.NodeType==EndNode{
+		log.Printf("============================== 流程结束 ==============================")
+	}else{
+		for _, user := range CurrentNode.UserIDs {
+			log.Printf("通知用户[%s],抓紧去处理", user)
+		}
 	}
 	return nil
 }
