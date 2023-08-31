@@ -43,6 +43,7 @@ func SetVariable(ProcessInstanceID int, variable string) (string, bool, error) {
 }
 
 //将变量map生成kv对形式的json字符串，以便存入数据库
+//此方法暂时无用
 func VariablesMap2Json(Variables map[string]string) (string, error) {
 	type kv struct {
 		Key   string
@@ -79,3 +80,4 @@ func ResolveVariables(ProcessInstanceID int, Variables []string) (map[string]str
 	}
 	return result, nil
 }
+

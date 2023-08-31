@@ -31,6 +31,12 @@ func (e *Event) MyEvent_Notify(ProcessInstanceID int, CurrentNode *Node, PrevNod
 	log.Printf("--------流程[%s]节点[%s]，通知节点中对应人员--------",processName, CurrentNode.NodeName)
 	if CurrentNode.NodeType==EndNode{
 		log.Printf("============================== 流程[%s]结束 ==============================",processName)
+		variables,err:= ResolveVariables(ProcessInstanceID, []string{"$starter"})
+		if err!=nil{
+			return err
+		}
+		log.Printf("通知流程创建人%s,流程[%s]已完成",variables["$starter"],processName)
+
 	}else{
 		for _, user := range CurrentNode.UserIDs {
 			log.Printf("通知用户[%s],抓紧去处理", user)
