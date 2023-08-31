@@ -43,11 +43,6 @@ func main() {
 	router := router.NewRouter()
 	router.Run(":8180")
 
-	//这里演示如何编译成linux下可执行文件 -o 参数指定生成文件名
-	//set GOARCH=amd64
-	//set GOOS=linux
-	//go build -o easy_workflow_linux main.go
-
 	//如何使用swagger生成文档
 	//一般在main包所在目录执行 swag init
 	//但本项目中，swagger命令需要在api目录中加上-d参数执行，如下
