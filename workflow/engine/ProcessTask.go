@@ -143,10 +143,19 @@ func taskHandle(TaskID int, Comment string, VariableJson string, Pass bool, opti
 	}
 
 	//这里处理节点结束事件
-	err = RunEvents(CurrentNode.EndEvents, task.ProcInstID, &CurrentNode, PrevNode)
+	//由于存在会签节点，节点中可能有n个任务，如果每个任务处理后都要调用结束事件，显然有点不妥。结束事件应该只被执行一次
+	//所以，这里先判断目前节点是否已经处理完毕。处理完毕，就可以开始节点结束事件。
+	finished, err := InstanceNodeIsFinish(task.ProcInstID, CurrentNode.NodeID)
 	if err != nil {
 		return err
 	}
+	if finished {
+		err = RunEvents(CurrentNode.EndEvents, task.ProcInstID, &CurrentNode, PrevNode)
+		if err != nil {
+			return err
+		}
+	}
+
 
 	//开始处理下一个节点
 	err = ProcessNode(task.ProcInstID, &NextNode, CurrentNode)

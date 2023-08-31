@@ -127,7 +127,7 @@ func GateWayNodeHandle(ProcessInstanceID int, CurrentNode *Node, PrevTaskNode No
 	var totalFinished int                          //所有已完成的上级节点
 	totalPrevNodes := len(CurrentNode.PrevNodeIDs) //所有上级节点
 	for _, nodeID := range CurrentNode.PrevNodeIDs {
-		finished, err := IfInstanceNodeIsFinish(ProcessInstanceID, nodeID)
+		finished, err := InstanceNodeIsFinish(ProcessInstanceID, nodeID)
 		if err != nil {
 			return err
 		}
@@ -238,7 +238,9 @@ func GetInstanceNode(ProcessInstanceID int, NodeID string) (Node, error) {
 }
 
 //判断特定实例中某一个节点是否已经完成
-func IfInstanceNodeIsFinish(ProcessInstanceID int, NodeID string) (bool, error) {
+//注意，finish只是代表节点是不是已经处理，不管处理的方式是驳回还是通过
+//一个流程实例中，由于驳回等原因，x节点可能出现多次。这里使用统计所有x节点的任务是否都finish来判断x节点是否finish
+func InstanceNodeIsFinish(ProcessInstanceID int, NodeID string) (bool, error) {
 	var finished bool
 	sql := "SELECT CASE WHEN total=finished THEN 1 ELSE 0 END AS finished " +
 		"FROM " +
