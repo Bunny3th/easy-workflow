@@ -156,7 +156,6 @@ func taskHandle(TaskID int, Comment string, VariableJson string, Pass bool, opti
 		}
 	}
 
-
 	//开始处理下一个节点
 	err = ProcessNode(task.ProcInstID, &NextNode, CurrentNode)
 	if err != nil {
@@ -258,4 +257,14 @@ func TaskFreeRejectToUpstreamNode(TaskID int, NodeID string, Comment string, Var
 		return err
 	}
 	return nil
+}
+
+//获取流程实例下任务历史记录
+func GetInstanceTaskHistory(ProcessInstanceID int) ([]Task, error) {
+	var tasklist []Task
+	_, err := ExecSQL("call sp_proc_inst_task_hist(?)", &tasklist, ProcessInstanceID)
+	if err != nil {
+		return nil, err
+	}
+	return tasklist, nil
 }
