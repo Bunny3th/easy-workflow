@@ -42,7 +42,7 @@ func ProcessSave(ProcessName string, Resource string, CreateUserID string, Sourc
 		ID    int
 		Error string
 	}
-    //存入数据库
+	//存入数据库
 	var r result
 	_, err = dao.ExecSQL("CALL sp_proc_def_save(?,?,?,?,?)", &r, ProcessName, Resource, execution, CreateUserID, Source)
 	if err != nil {
@@ -89,7 +89,7 @@ func Nodes2Execution(nodes []Node) (string, error) {
 			}
 		}
 	}
-    //转为json
+	//转为json
 	json, err := json.Marshal(executions)
 	if err != nil {
 		return "", err
@@ -117,6 +117,21 @@ func GetProcessIDByInstanceID(ProcessInstanceID int) (int, error) {
 	}
 
 	return ID, nil
+}
+
+//获取流程名称 by 流程实例ID
+func GetProcessNameByInstanceID(ProcessInstanceID int) (string, error) {
+	sql := "SELECT b.name FROM proc_inst a JOIN proc_def b ON a.proc_id=b.id WHERE a.id=?"
+	type result struct {
+		Name string
+	}
+	var r result
+	_, err := dao.ExecSQL(sql, &r, ProcessInstanceID)
+	if err != nil {
+		return "", err
+	}
+
+	return r.Name, nil
 }
 
 //获取流程定义（返回流程中所有节点） by 流程ID
