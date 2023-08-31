@@ -250,6 +250,44 @@
                 }
             }
         },
+        "/process/inst/task_history": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "流程实例"
+                ],
+                "summary": "流程实例中任务执行记录",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "example": 1,
+                        "description": "流程实例ID",
+                        "name": "instid",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "任务列表",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.Task"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/process/task/finished": {
             "get": {
                 "description": "返回的是任务数组",

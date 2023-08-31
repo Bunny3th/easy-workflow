@@ -148,6 +148,23 @@ func ProcInst_Revoke(c *gin.Context) {
 	}
 }
 
+// @Summary      流程实例中任务执行记录
+// @Description
+// @Tags         流程实例
+// @Produce      json
+// @Param        instid  query int  true  "流程实例ID" example(1)
+// @Success      200  {object}  []model.Task "任务列表"
+// @Failure      400  {object}  string 报错信息
+// @Router       /process/inst/task_history [get]
+func ProcInst_TaskHistory(c *gin.Context) {
+	InstanceID, _ := strconv.Atoi(c.Query("instid"))
+	if tasklist,err:=GetInstanceTaskHistory(InstanceID);err==nil{
+		c.JSON(200,tasklist)
+	}else{
+		c.JSON(400,err.Error())
+	}
+}
+
 // @Summary      任务通过
 // @Description  任务通过后根据流程定义，进入下一个节点进行处理
 // @Tags         任务

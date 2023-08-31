@@ -333,6 +333,31 @@ paths:
       summary: 开始流程
       tags:
       - 流程实例
+  /process/inst/task_history:
+    get:
+      parameters:
+      - description: 流程实例ID
+        example: 1
+        in: query
+        name: instid
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 任务列表
+          schema:
+            items:
+              $ref: '#/definitions/model.Task'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+      summary: 流程实例中任务执行记录
+      tags:
+      - 流程实例
   /process/task/finished:
     get:
       description: 返回的是任务数组
