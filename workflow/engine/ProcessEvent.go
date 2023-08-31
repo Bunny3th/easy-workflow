@@ -10,11 +10,10 @@ import (
 
 type method struct {
 	S interface{} //method所在的struct，这是函数执行的第一个参数
-	M reflect.Method
+	M reflect.Method  //方法
 }
 
-//事件池，所有的事件都注册在这里
-//var EventPool = make(map[string]reflect.Method)
+//事件池，所有的事件都会在流程引擎启动的时候注册到这里
 var EventPool = make(map[string]method)
 
 //注册一个struct中的所有func
