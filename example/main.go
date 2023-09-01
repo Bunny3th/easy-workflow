@@ -68,7 +68,7 @@ func DBConfig() {
 func init() {
 	//初始化人事数据
 	RoleUser["人事主管"] = []string{"张经理"}
-	RoleUser["老板"] = []string{"李老板"}
+	RoleUser["老板"] = []string{"李老板","老板娘"}
 	RoleUser["副总"] = []string{"赵总", "钱总", "孙总"}
 }
 
