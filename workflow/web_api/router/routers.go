@@ -13,7 +13,7 @@ func NewRouter(engine *gin.Engine,GinMode string) *gin.Engine {
 
 	//只有在debug模式下才开启swagger
 	if GinMode == "debug" {
-		engine.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+		engine.GET("/process/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	}
 
 	engine.POST("/process/def/save",ProcDef_Save)
