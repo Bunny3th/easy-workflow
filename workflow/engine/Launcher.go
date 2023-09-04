@@ -1,7 +1,7 @@
 package engine
 
 import (
-	"easy-workflow/workflow/dao"
+	"github.com/Bunny3th/easy-workflow/workflow/dao"
 	"log"
 )
 

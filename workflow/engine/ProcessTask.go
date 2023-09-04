@@ -1,11 +1,11 @@
 package engine
 
 import (
-	. "easy-workflow/workflow/dao"
-	. "easy-workflow/workflow/model"
 	"encoding/json"
 	"errors"
 	"fmt"
+	. "github.com/Bunny3th/easy-workflow/workflow/dao"
+	. "github.com/Bunny3th/easy-workflow/workflow/model"
 )
 
 //生成任务 返回生成的任务ID数组

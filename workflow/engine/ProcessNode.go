@@ -1,10 +1,10 @@
 package engine
 
 import (
-	"easy-workflow/workflow/dao"
-	. "easy-workflow/workflow/model"
 	"errors"
 	"fmt"
+	"github.com/Bunny3th/easy-workflow/workflow/dao"
+	. "github.com/Bunny3th/easy-workflow/workflow/model"
 	"regexp"
 	"strings"
 )

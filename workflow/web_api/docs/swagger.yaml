@@ -1,0 +1,571 @@
+definitions:
+  model.Condition:
+    properties:
+      expression:
+        description: 条件表达式
+        type: string
+      nodeID:
+        description: 满足条件后转跳到哪个节点
+        type: string
+    type: object
+  model.HybridGateway:
+    properties:
+      conditions:
+        description: 条件判断节点
+        items:
+          $ref: '#/definitions/model.Condition'
+        type: array
+      inevitableNodes:
+        description: 必然执行的节点
+        items:
+          type: string
+        type: array
+      waitForAllPrevNode:
+        description: 0:等于包含网关，只要上级节点有一个完成，就可以往下走   1:等于并行网关，必须要上级节点全部完成才能往下走
+        type: integer
+    type: object
+  model.Node:
+    properties:
+      endEvents:
+        description: 节点结束时触发的事件
+        items:
+          type: string
+        type: array
+      gwconfig:
+        allOf:
+        - $ref: '#/definitions/model.HybridGateway'
+        description: 网关。只有在节点类型为GateWay的情况下此字段才会有值
+      isCosigned:
+        description: 是否会签  只有任务节点才会用到，会签的情况下需要所有任务通过才能进行下一节点，只要有一人反对，则整个节点驳回
+        type: integer
+      nodeID:
+        description: 节点名称
+        type: string
+      nodeName:
+        description: 节点名字
+        type: string
+      nodeType:
+        allOf:
+        - $ref: '#/definitions/model.NodeType'
+        description: 节点类型 0:开始节点 1:任务节点,指的是需要人完成的节点 2:网关 3:结束节点
+      prevNodeIDs:
+        description: 上级节点(不管是任务节点还是结束节点，因为分支的存在，所以它的上级节点可能都会有多个)
+        items:
+          type: string
+        type: array
+      roles:
+        description: 节点处理角色数组。注意，因为系统无法预先知道角色中存在多少用户，所以必须用StartEvents解析角色，将角色中的用户加到UserIDs中
+        items:
+          type: string
+        type: array
+      startEvents:
+        description: 节点开始时触发的事件
+        items:
+          type: string
+        type: array
+      userIDs:
+        description: 节点处理人数组
+        items:
+          type: string
+        type: array
+    type: object
+  model.NodeType:
+    enum:
+    - 0
+    - 1
+    - 2
+    - 3
+    type: integer
+    x-enum-comments:
+      EndNode: 结束节点,结束节点不需要人参与，到了此节点，则流程实例完成
+      GateWayNode: 参考activiti的网关.此项目中使用混合网关,等于activiti中排他、并行网关、包含网关的混合体
+      RootNode: 开始(根)节点
+      TaskNode: 任务节点,指的是需要人完成的节点
+    x-enum-varnames:
+    - RootNode
+    - TaskNode
+    - GateWayNode
+    - EndNode
+  model.ProcessDefine:
+    properties:
+      createTime:
+        description: 创建时间
+        type: string
+      id:
+        description: 流程ID
+        type: integer
+      name:
+        description: 流程名字
+        type: string
+      resource:
+        description: 流程定义模板
+        type: string
+      source:
+        description: 来源(引擎可能被多个系统、组件等使用，这里记下从哪个来源创建的流程
+        type: string
+      userID:
+        description: 创建者ID
+        type: string
+      version:
+        description: 版本号
+        type: integer
+    type: object
+  model.Task:
+    properties:
+      batchCode:
+        description: 批次码.节点会被驳回，一个节点可能产生多批task,用此码做分别
+        type: string
+      businessID:
+        description: 业务ID
+        type: string
+      comment:
+        description: 评论意见
+        type: string
+      createTime:
+        description: 系统创建任务时间
+        type: string
+      finishedTime:
+        description: 处理任务时间
+        type: string
+      isCosigned:
+        description: 0:任意一人通过即可 1:会签
+        type: integer
+      isFinished:
+        description: 0:任务未处理 1:处理完成
+        type: integer
+      isPassed:
+        description: 任务是否通过 0:驳回 1:通过
+        type: integer
+      nodeID:
+        description: 节点ID
+        type: string
+      nodeName:
+        description: 节点名称
+        type: string
+      prevNodeID:
+        description: 上一节点ID
+        type: string
+      procID:
+        description: 流程ID
+        type: integer
+      procInstID:
+        description: 流程实例ID
+        type: integer
+      procName:
+        description: 流程名称
+        type: string
+      taskID:
+        description: 任务ID
+        type: integer
+      userID:
+        description: 分配用户ID
+        type: string
+    type: object
+info:
+  contact: {}
+paths:
+  /process/def/get:
+    get:
+      description: 返回的是Node数组，流程是由N个Node组成的
+      parameters:
+      - description: 流程ID
+        example: "1"
+        in: query
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Node数组
+          schema:
+            items:
+              $ref: '#/definitions/model.Node'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+      summary: 获取流程定义
+      tags:
+      - 流程定义
+  /process/def/list:
+    get:
+      description: 引擎可能被多个系统、组件等使用，source表示从哪个来源创建的流程
+      parameters:
+      - description: 来源
+        example: 办公系统
+        in: query
+        name: source
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.ProcessDefine'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+      summary: 获取特定source下所有流程
+      tags:
+      - 流程定义
+  /process/def/save:
+    post:
+      parameters:
+      - description: 流程名称
+        example: 员工请假
+        in: formData
+        name: ProcessName
+        required: true
+        type: string
+      - description: 流程定义资源(json)
+        example: json字符串
+        in: formData
+        name: Resource
+        required: true
+        type: string
+      - description: 创建者ID
+        example: "0001"
+        in: formData
+        name: CreateUserID
+        required: true
+        type: string
+      - description: 来源
+        example: 办公系统
+        in: formData
+        name: Source
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: integer
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+      summary: 流程生成/升级
+      tags:
+      - 流程定义
+  /process/inst/revoke:
+    post:
+      description: 注意，Force 是否强制撤销，若为false,则只有流程回到发起人这里才能撤销
+      parameters:
+      - description: 流程实例ID
+        example: 1
+        in: formData
+        name: InstanceID
+        required: true
+        type: integer
+      - description: 是否强制撤销
+        in: formData
+        name: Force
+        required: true
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ok
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+      summary: 撤销流程
+      tags:
+      - 流程实例
+  /process/inst/start:
+    post:
+      description: 注意，VariablesJson格式是key-value对象集合:[{"Key":"starter","Value":"U0001"}]
+      parameters:
+      - description: 流程ID
+        example: "1"
+        in: formData
+        name: ProcessID
+        required: true
+        type: string
+      - description: 业务员ID
+        example: '"订单001"'
+        in: formData
+        name: BusinessID
+        required: true
+        type: string
+      - description: 评论意见
+        example: '"家中有事请假三天,请领导批准"'
+        in: formData
+        name: Comment
+        type: string
+      - description: 变量(Json)
+        example: '[{"Key":"starter","Value":"U0001"}]'
+        in: formData
+        name: VariablesJson
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: integer
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+      summary: 开始流程
+      tags:
+      - 流程实例
+  /process/inst/task_history:
+    get:
+      parameters:
+      - description: 流程实例ID
+        example: 1
+        in: query
+        name: instid
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 任务列表
+          schema:
+            items:
+              $ref: '#/definitions/model.Task'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+      summary: 流程实例中任务执行记录
+      tags:
+      - 流程实例
+  /process/task/finished:
+    get:
+      description: 返回的是任务数组
+      parameters:
+      - description: 用户ID
+        example: '"U001"'
+        in: query
+        name: userid
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.Task'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+      summary: 获取已办任务
+      tags:
+      - 任务
+  /process/task/pass:
+    post:
+      description: 任务通过后根据流程定义，进入下一个节点进行处理
+      parameters:
+      - description: 任务ID
+        example: 1
+        in: formData
+        name: TaskID
+        required: true
+        type: integer
+      - description: 评论意见
+        example: '"同意请假"'
+        in: formData
+        name: Comment
+        type: string
+      - description: 变量(Json)
+        example: '"{"User":"001"}"'
+        in: formData
+        name: VariablesJson
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ok
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+      summary: 任务通过
+      tags:
+      - 任务
+  /process/task/pass/directly:
+    post:
+      description: 此功能只有在非会签节点时才能使用
+      parameters:
+      - description: 任务ID
+        example: 1
+        in: formData
+        name: TaskID
+        required: true
+        type: integer
+      - description: 评论意见
+        example: '"同意请假"'
+        in: formData
+        name: Comment
+        type: string
+      - description: 变量(Json)
+        example: '"{"User":"001"}"'
+        in: formData
+        name: VariablesJson
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ok
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+      summary: 任务通过后流程直接返回到上一个驳回我的节点
+      tags:
+      - 任务
+  /process/task/reject:
+    post:
+      parameters:
+      - description: 任务ID
+        example: 1
+        in: formData
+        name: TaskID
+        required: true
+        type: integer
+      - description: 评论意见
+        example: '"不同意"'
+        in: formData
+        name: Comment
+        type: string
+      - description: 变量(Json)
+        example: '"{"User":"001"}"'
+        in: formData
+        name: VariablesJson
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ok
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+      summary: 任务驳回
+      tags:
+      - 任务
+  /process/task/reject/free:
+    post:
+      description: 驳回到上游任意一个节点
+      parameters:
+      - description: 任务ID
+        example: 1
+        in: formData
+        name: TaskID
+        required: true
+        type: integer
+      - description: 评论意见
+        example: '"不同意"'
+        in: formData
+        name: Comment
+        type: string
+      - description: 变量(Json)
+        example: '"{"User":"001"}"'
+        in: formData
+        name: VariablesJson
+        type: string
+      - description: 驳回到哪个节点
+        example: '"流程开始节点"'
+        in: formData
+        name: RejectToNodeID
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ok
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+      summary: 自由任务驳回
+      tags:
+      - 任务
+  /process/task/todo:
+    get:
+      description: 返回的是任务数组
+      parameters:
+      - description: 用户ID
+        example: '"U001"'
+        in: query
+        name: userid
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.Task'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+      summary: 获取待办任务
+      tags:
+      - 任务
+  /process/task/upstream:
+    get:
+      description: 此功能为自由驳回使用
+      parameters:
+      - description: 任务ID
+        in: query
+        name: taskid
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.Node'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+      summary: 获取本任务所在节点的所有上游节点
+      tags:
+      - 任务
+swagger: "2.0"

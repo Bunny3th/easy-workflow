@@ -1,4 +1,4 @@
-module easy-workflow
+module github.com/Bunny3th/easy-workflow
 
 go 1.19
 

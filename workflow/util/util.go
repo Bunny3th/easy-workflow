@@ -47,16 +47,8 @@ func TypeIsError(Type reflect.Type) bool {
 
 				return true
 			}
-
 		}
-
 	}
 
 	return false
-
-	//fmt.Println(v.M.Func.Type().Out(0).Method(0).Name)
-	//fmt.Println(v.M.Func.Type().Out(0).Method(0).Type.NumIn())
-	//fmt.Println(v.M.Func.Type().Out(0).Method(0).Type.NumOut())
-	//fmt.Println(v.M.Func.Type().Out(0).Method(0).Type.Out(0).Kind())
-
 }

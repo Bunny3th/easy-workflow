@@ -1,9 +1,9 @@
 package engine
 
 import (
-	. "easy-workflow/workflow/model"
-	. "easy-workflow/workflow/util"
 	"fmt"
+	. "github.com/Bunny3th/easy-workflow/workflow/model"
+	. "github.com/Bunny3th/easy-workflow/workflow/util"
 	"log"
 	"reflect"
 )

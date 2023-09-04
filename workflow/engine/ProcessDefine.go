@@ -1,11 +1,11 @@
 package engine
 
 import (
-	"easy-workflow/workflow/dao"
-	. "easy-workflow/workflow/model"
-	"easy-workflow/workflow/util"
 	"encoding/json"
 	"errors"
+	"github.com/Bunny3th/easy-workflow/workflow/dao"
+	. "github.com/Bunny3th/easy-workflow/workflow/model"
+	"github.com/Bunny3th/easy-workflow/workflow/util"
 )
 
 //流程定义解析(json->struct)

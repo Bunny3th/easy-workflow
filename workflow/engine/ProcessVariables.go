@@ -1,9 +1,9 @@
 package engine
 
 import (
-	"easy-workflow/workflow/dao"
 	"encoding/json"
 	"errors"
+	"github.com/Bunny3th/easy-workflow/workflow/dao"
 	"strings"
 )
 

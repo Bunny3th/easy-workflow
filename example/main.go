@@ -1,10 +1,12 @@
 package main
 
 import (
-	"easy-workflow/example/router"
-	. "easy-workflow/workflow/config"
-	. "easy-workflow/workflow/engine"
-	. "easy-workflow/workflow/model"
+
+	. "github.com/Bunny3th/easy-workflow/workflow/config"
+	. "github.com/Bunny3th/easy-workflow/workflow/engine"
+	. "github.com/Bunny3th/easy-workflow/workflow/model"
+	."github.com/Bunny3th/easy-workflow/workflow/web_api"
+	"github.com/gin-gonic/gin"
 	"log"
 )
 
@@ -73,24 +75,19 @@ func init() {
 	RoleUser["副总"] = []string{"赵总", "钱总", "孙总"}
 }
 
-// @title easy-workflow工作流引擎API
-// @version 1.0.0
-// @description 演示说明文档
-// @contact.name go-swagger帮助文档
-// @contact.url https://github.com/swaggo/swag/blob/master/README_zh-CN.md
-// @host localhost:8180
-// @BasePath /
+
 func main() {
 
 	//开启流程引擎
 	StartWorkFlow(DBConfig, &Event{})
 
 	//开启web api
-	router := router.NewRouter()
-	router.Run(":8180")
+	engine := gin.New()
+	//这里定义中间件
+	engine.Use(gin.Logger())      //gin的默认log，默认输出是os.Stdout，即屏幕
+	engine.Use(gin.Recovery())    //从任何panic中恢复，并在出现panic时返回http 500
+	StartWebApi(engine,"debug",":8180")
 
-	//如何使用swagger生成文档
-	//一般在main包所在目录执行 swag init
-	//但本项目中，swagger命令需要在api目录中加上-d参数执行，如下
-	//swag init -d ./,../workflow/model
+
+
 }

@@ -1,15 +1,13 @@
 package dao
 
 import (
-	. "easy-workflow/workflow/config"
+	. "github.com/Bunny3th/easy-workflow/workflow/config"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
-	"os"
-
-	//"gorm.io/gorm/logger"
 	"gorm.io/gorm/schema"
 	"log"
+	"os"
 	"time"
 )
 
