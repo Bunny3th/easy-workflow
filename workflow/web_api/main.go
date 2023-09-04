@@ -4,7 +4,11 @@ import (
 	. "github.com/Bunny3th/easy-workflow/workflow/web_api/router"
 	"github.com/gin-gonic/gin"
 )
-//开启工作流引擎WebApi  GinMode可选项:debug | release
+/*开启工作流引擎WebApi	参数说明:
+engine: *gin.Engine gin框架(github.com/gin-gonic/gin)
+GinMode可选项: debug | release
+addr 监听地址与端口,如"localhost:8080"
+ */
 func StartWebApi(engine *gin.Engine, GinMode string, addr string) {
 	e := NewRouter(engine, GinMode)
 	e.Run(addr)

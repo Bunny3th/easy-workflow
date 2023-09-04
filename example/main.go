@@ -63,10 +63,6 @@ func (e *Event) MyEvent_ResolveRoles(ProcessInstanceID int, CurrentNode *Node, P
 	return nil
 }
 
-func DBConfig() {
-	DBConnect.DBConnectString = "goeasy:sNd%sLDjd*12@tcp(172.16.18.18:3306)/easy_workflow?charset=utf8mb4&parseTime=True&loc=Local"
-}
-
 func init() {
 	//初始化人事数据
 	RoleUser["主管"] = []string{"张经理"}
@@ -75,19 +71,20 @@ func init() {
 	RoleUser["副总"] = []string{"赵总", "钱总", "孙总"}
 }
 
+func DBConfig() {
+	DBConnect.DBConnectString = "goeasy:sNd%sLDjd*12@tcp(172.16.18.18:3306)/easy_workflow?charset=utf8mb4&parseTime=True&loc=Local"
+}
+
 
 func main() {
-
-	//开启流程引擎
+	//----------------------------开启流程引擎----------------------------
 	StartWorkFlow(DBConfig, &Event{})
 
-	//开启web api
+	//----------------------------开启web api----------------------------
+	//本项目采用gin运行web api，首先生成一个gin.Engine
 	engine := gin.New()
 	//这里定义中间件
 	engine.Use(gin.Logger())      //gin的默认log，默认输出是os.Stdout，即屏幕
 	engine.Use(gin.Recovery())    //从任何panic中恢复，并在出现panic时返回http 500
 	StartWebApi(engine,"debug",":8180")
-
-
-
 }
