@@ -4,7 +4,7 @@ package docs
 
 import "github.com/swaggo/swag"
 
-const docTemplate = `{
+const docTemplateeasy-workflow = `{
     "schemes": {{ marshal .Schemes }},
     "swagger": "2.0",
     "info": {
@@ -846,18 +846,18 @@ const docTemplate = `{
     }
 }`
 
-// SwaggerInfo holds exported Swagger Info so clients can modify it
-var SwaggerInfo = &swag.Spec{
-	Version:          "",
-	Host:             "",
-	BasePath:         "",
-	Schemes:          []string{},
-	Title:            "",
-	Description:      "",
-	InfoInstanceName: "esay-workflow",
-	SwaggerTemplate:  docTemplate,
+// SwaggerInfoeasy-workflow holds exported Swagger Info so clients can modify it
+var SwaggerInfoeasy-workflow = &swag.Spec{
+	Version:     "",
+	Host:        "",
+	BasePath:    "",
+	Schemes:     []string{  },
+	Title:       "",
+	Description: "",
+	InfoInstanceName: "easy-workflow",
+	SwaggerTemplate: docTemplateeasy-workflow,
 }
 
 func init() {
-	swag.Register(SwaggerInfo.InstanceName(), SwaggerInfo)
+	swag.Register(SwaggerInfoeasy-workflow.InstanceName(), SwaggerInfoeasy-workflow)
 }
