@@ -86,5 +86,5 @@ func main() {
 	//这里定义中间件
 	engine.Use(gin.Logger())      //gin的默认log，默认输出是os.Stdout，即屏幕
 	engine.Use(gin.Recovery())    //从任何panic中恢复，并在出现panic时返回http 500
-	StartWebApi(engine,"workflow",true,":8180")
+	StartWebApi(engine,"workflow",true,"/swagger/*any",":8180")
 }

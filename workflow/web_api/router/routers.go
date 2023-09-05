@@ -8,15 +8,15 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
-func NewRouter(engine *gin.Engine, BaseUrl string, ShowSwaggerDoc bool) *gin.Engine {
-	router := engine.Group(BaseUrl)
-
+func NewRouter(engine *gin.Engine, ApiBaseUrl string, ShowSwaggerDoc bool,SwaggerUrl string) *gin.Engine {
 	//注意，由于我们执行swag init的时候指定了InstanceName，所以这里也必须传入InstanceName
 	if ShowSwaggerDoc {
-		router.GET("/process/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, func(c *ginSwagger.Config) {
+		engine.GET(SwaggerUrl, ginSwagger.WrapHandler(swaggerFiles.Handler, func(c *ginSwagger.Config) {
 			c.InstanceName = "easyworkflow"
 		}))
 	}
+
+	router := engine.Group(ApiBaseUrl)
 
 	router.POST("/process/def/save", ProcDef_Save)
 	router.GET("/process/def/list", ProcDef_ListBySource)
