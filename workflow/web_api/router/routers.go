@@ -18,22 +18,22 @@ func NewRouter(engine *gin.Engine, ApiBaseUrl string, ShowSwaggerDoc bool,Swagge
 
 	router := engine.Group(ApiBaseUrl)
 
-	router.POST("/process/def/save", ProcDef_Save)
-	router.GET("/process/def/list", ProcDef_ListBySource)
-	router.GET("/process/def/get", ProcDef_GetProcDefByID)
+	router.POST("/def/save", ProcDef_Save)
+	router.GET("/def/list", ProcDef_ListBySource)
+	router.GET("/def/get", ProcDef_GetProcDefByID)
 
-	router.POST("/process/inst/start", ProcInst_Start)
-	router.POST("/process/inst/revoke", ProcInst_Revoke)
-	router.GET("/process/inst/task_history", ProcInst_TaskHistory)
+	router.POST("/inst/start", ProcInst_Start)
+	router.POST("/inst/revoke", ProcInst_Revoke)
+	router.GET("/inst/task_history", ProcInst_TaskHistory)
 
-	router.POST("/process/task/pass", Task_Pass)
-	router.POST("/process/task/pass/directly", Task_Pass_DirectlyToWhoRejectedMe)
+	router.POST("/task/pass", Task_Pass)
+	router.POST("/task/pass/directly", Task_Pass_DirectlyToWhoRejectedMe)
 
-	router.POST("/process/task/reject", Task_Reject)
-	router.POST("/process/task/reject/free", Task_FreeRejectToUpstreamNode)
-	router.GET("/process/task/todo", Task_ToDoList)
-	router.GET("/process/task/finished", Task_FinishedList)
-	router.GET("/process/task/upstream", Task_UpstreamNodeList)
+	router.POST("/task/reject", Task_Reject)
+	router.POST("/task/reject/free", Task_FreeRejectToUpstreamNode)
+	router.GET("/task/todo", Task_ToDoList)
+	router.GET("/task/finished", Task_FinishedList)
+	router.GET("/task/upstream", Task_UpstreamNodeList)
 
 	return engine
 }
