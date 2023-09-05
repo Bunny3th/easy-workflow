@@ -15,12 +15,10 @@ func StartWorkFlow(DBConfigurator DataBaseConfigurator, EventStructs ...any) {
 	//数据库连接初始化
 	dao.DBInit()
 
-	if len(EventStructs) != 0 {
-		//注册事件函数
-		for _, s := range EventStructs {
-			if s != nil {
-				RegisterEvents(s)
-			}
+	//注册事件函数
+	for _, s := range EventStructs {
+		if s != nil {
+			RegisterEvents(s)
 		}
 	}
 
