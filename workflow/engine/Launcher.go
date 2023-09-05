@@ -15,10 +15,15 @@ func StartWorkFlow(DBConfigurator DataBaseConfigurator, EventStructs ...any) {
 	//数据库连接初始化
 	dao.DBInit()
 
-	//注册事件函数
-	for _, s := range EventStructs {
-		RegisterEvents(s)
+	if len(EventStructs) != 0 {
+		//注册事件函数
+		for _, s := range EventStructs {
+			if s != nil {
+				RegisterEvents(s)
+			}
+		}
 	}
+
 	log.Println("========================== easy workflow 启动成功  create by 兔老三 ========================== ")
 	log.Print("\n███████╗ █████╗ ███████╗██╗   ██╗    ████████╗ ██████╗      ██████╗  ██████╗ \n██╔════╝██╔══██╗██╔════╝╚██╗ ██╔╝    ╚══██╔══╝██╔═══██╗    ██╔════╝ ██╔═══██╗\n█████╗  ███████║███████╗ ╚████╔╝        ██║   ██║   ██║    ██║  ███╗██║   ██║\n██╔══╝  ██╔══██║╚════██║  ╚██╔╝         ██║   ██║   ██║    ██║   ██║██║   ██║\n███████╗██║  ██║███████║   ██║          ██║   ╚██████╔╝    ╚██████╔╝╚██████╔╝\n╚══════╝╚═╝  ╚═╝╚══════╝   ╚═╝          ╚═╝    ╚═════╝      ╚═════╝  ╚═════╝ \n                                                                             \n")
 }
