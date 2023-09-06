@@ -106,12 +106,12 @@ func taskHandle(TaskID int, Comment string, VariableJson string, Pass bool, opti
 	if r.Error != "" {
 		return errors.New(r.Error)
 	}
-	//如果没有下一个节点要处理，直接退出
+	//如果没有下一个节点要处理，说明此任务节点还有其他任务未提交,直接退出
 	if r.Next_opt_node_id == "" {
 		return nil
 	}
 
-	//如果任务所在节点已处理完毕，此时：
+	//执行到这一步,说明所在节点任务已全部处理完毕，此时：
 	//1、处理节点结束事件
 	//2、开始处理下一个节点
 	task, err = GetTaskInfo(TaskID)
@@ -142,21 +142,13 @@ func taskHandle(TaskID int, Comment string, VariableJson string, Pass bool, opti
 		}
 	}
 
-	//这里处理节点结束事件
-	//由于存在会签节点，节点中可能有n个任务，如果每个任务处理后都要调用结束事件，显然有点不妥。结束事件应该只被执行一次
-	//所以，这里先判断目前节点是否已经处理完毕。处理完毕，就可以开始节点结束事件。
-	finished, err := InstanceNodeIsFinish(task.ProcInstID, CurrentNode.NodeID)
+	//--------------------------这里处理节点结束事件--------------------------
+	err = RunEvents(CurrentNode.EndEvents, task.ProcInstID, &CurrentNode, PrevNode)
 	if err != nil {
 		return err
 	}
-	if finished {
-		err = RunEvents(CurrentNode.EndEvents, task.ProcInstID, &CurrentNode, PrevNode)
-		if err != nil {
-			return err
-		}
-	}
 
-	//开始处理下一个节点
+	//--------------------------开始处理下一个节点--------------------------
 	err = ProcessNode(task.ProcInstID, &NextNode, CurrentNode)
 	if err != nil {
 		return err

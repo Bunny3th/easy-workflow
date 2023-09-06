@@ -21,7 +21,7 @@ func main() {
 	CreateExampleProcess()
 
 	//----------------------------开启web api----------------------------
-	//这里需要注意：如果你的业务系统也是使用gin框架，同时使用了swagger
+	//这里需要注意：如果你的业务系统也同时使用了swagger
 	//你希望业务系统的swagger页面(以下简称“业务swagger”)与easy-workflow内置web api的swagger（以下简称“工作流swagger”）同时开启
 	//必须做到：
 	//1、业务swagger与工作流swagger必须使用同一个访问路由，即假如业务swagger访问路由是"/swagger/*any",则工作流swagger必须也是这个路由
