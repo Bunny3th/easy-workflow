@@ -178,7 +178,15 @@ func GetTaskInfo(TaskID int) (Task, error) {
 //获取特定用户待办任务列表
 func GetTaskToDoList(UserID string) ([]Task, error) {
 	var tasks []Task
-	_, err := ExecSQL("call sp_task_todo(?)", &tasks, UserID)
+	sql := "SELECT DISTINCT a.id,c.business_id,a.proc_id,d.name,a.proc_inst_id,a.node_id,b.node_name," +
+		"a.user_id,a.create_time FROM task a " +
+		"LEFT JOIN (SELECT DISTINCT proc_id,node_id,node_name FROM proc_execution) b " +
+		"ON a.proc_id=b.proc_id AND a.node_id=b.node_id " +
+		"LEFT JOIN proc_inst c ON a.proc_inst_id=c.id " +
+		"LEFT JOIN proc_def d ON a.proc_id=d.id " +
+		"WHERE a.user_id=?  AND a.is_finished=0 ORDER BY a.id;"
+
+	_, err := ExecSQL(sql, &tasks, UserID)
 	if err != nil {
 		return nil, err
 	}
@@ -188,7 +196,35 @@ func GetTaskToDoList(UserID string) ([]Task, error) {
 //获取特定用户已完成任务列表
 func GetTaskFinishedList(UserID string) ([]Task, error) {
 	var tasks []Task
-	_, err := ExecSQL("call sp_task_finished(?)", &tasks, UserID)
+	sql := "WITH tmp_task AS " +
+		"(SELECT id,proc_id,proc_inst_id,node_id,user_id,create_time,is_passed,is_finished,finished_time \n" +
+		"FROM task \n" +
+		"UNION ALL \n" +
+		"SELECT task_id AS id,proc_id,proc_inst_id,node_id,user_id,create_time,is_passed,is_finished,finished_time \n" +
+		"FROM hist_task)\n" +
+		",tmp_task_comment AS \n" +
+		"(SELECT task_id,COMMENT FROM task_comment \n" +
+		"UNION ALL \n" +
+		"SELECT task_id,COMMENT FROM hist_task_comment)\n" +
+		",tmp_proc_inst AS \n" +
+		"(SELECT id,business_id FROM proc_inst \n" +
+		"UNION ALL \n" +
+		"SELECT id,business_id FROM hist_proc_inst)\n" +
+		",tmp_proc_execution AS \n" +
+		"(SELECT DISTINCT proc_id,node_id,node_name FROM proc_execution) \n" +
+		"SELECT DISTINCT a.id,c.business_id,a.proc_id,d.name,a.proc_inst_id,b.node_id,b.node_name,a.user_id,\n" +
+		"DATE_FORMAT(a.create_time,'%Y-%m-%d %T') AS create_time,DATE_FORMAT(a.finished_time,'%Y-%m-%d %T') AS finished_time,\n" +
+		"e.comment \n" +
+		"FROM tmp_task a \n" +
+		"LEFT JOIN tmp_proc_execution b ON a.proc_id=b.proc_id AND a.node_id=b.node_id \n" +
+		"LEFT JOIN tmp_proc_inst c ON a.proc_inst_id=c.id \n" +
+		"LEFT JOIN proc_def d ON a.proc_id=d.id \n" +
+		"LEFT JOIN tmp_task_comment e ON a.id=e.task_id WHERE \n" +
+		"a.user_id=?   AND a.is_finished=1  \n" +
+		"AND a.is_passed IS NOT NULL \n" + //有些任务并不是用户自己完成，而是系统自动结束的，这种任务不必给用户看
+		"ORDER BY a.id;"
+
+	_, err := ExecSQL(sql, &tasks, UserID)
 	if err != nil {
 		return nil, err
 	}

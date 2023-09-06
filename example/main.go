@@ -79,7 +79,7 @@ func DBConfig() {
 func main() {
 	//----------------------------开启流程引擎----------------------------
 	//StartWorkFlow(DBConfig, &Event{})
-	StartWorkFlow(DBConfig,nil)
+	StartWorkFlow(DBConfig,&Event{})
 
 	//----------------------------开启web api----------------------------
 	//本项目采用gin运行web api，首先生成一个gin.Engine
@@ -95,5 +95,5 @@ func main() {
 	//这里定义中间件
 	engine.Use(gin.Logger())      //gin的默认log，默认输出是os.Stdout，即屏幕
 	engine.Use(gin.Recovery())    //从任何panic中恢复，并在出现panic时返回http 500
-	StartWebApi(engine,"workflow",true,"/swagger/*any",":8180")
+	StartWebApi(engine,"/process",true,"/swagger/*any",":8180")
 }
