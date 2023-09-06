@@ -3,7 +3,11 @@ package util
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
+	"github.com/Bunny3th/easy-workflow/workflow/dao"
 	"reflect"
+	"regexp"
+	"strings"
 )
 
 //将json字符串转为struct
@@ -51,4 +55,22 @@ func TypeIsError(Type reflect.Type) bool {
 	}
 
 	return false
+}
+
+//这是一个偷懒取巧的办法:利用数据库计算网关中的条件表达式
+func ExpressionEvaluator(expression string) (bool, error) {
+	//首先通过正则表达式判断是否有SQL注入风险
+	pattern := regexp.MustCompile("delete|truncate|insert|drop|create|select|update|set|from|grant|call|execute")
+	match := pattern.FindString(strings.ToLower(expression))
+	if match != "" {
+		return false, errors.New("表达式中包含危险词,可能造成SQL注入!")
+	}
+
+	sql := "SELECT " + expression
+	var ok bool
+	_, err := dao.ExecSQL(sql, &ok)
+	if err != nil {
+		return false, err
+	}
+	return ok, nil
 }

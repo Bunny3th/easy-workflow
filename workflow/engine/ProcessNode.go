@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/Bunny3th/easy-workflow/workflow/dao"
 	. "github.com/Bunny3th/easy-workflow/workflow/model"
+	. "github.com/Bunny3th/easy-workflow/workflow/util"
 	"regexp"
 	"strings"
 )
@@ -250,8 +251,7 @@ func GateWayNodeHandle(ProcessInstanceID int, CurrentNode *Node, PrevTaskNode No
 		}
 
 		//计算表达式，如果成功，则将节点添加到下一级节点组中
-		var ok bool
-		_, err = dao.ExecSQL("call sp_expression_evaluator(?)", &ok, expression)
+		ok,err:=ExpressionEvaluator(expression)
 		if err != nil {
 			return err
 		}
