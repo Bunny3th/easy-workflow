@@ -1,10 +1,11 @@
 package engine
 
 import (
-	"encoding/json"
+	//"encoding/json"
 	"errors"
 	"fmt"
 	. "github.com/Bunny3th/easy-workflow/workflow/dao"
+	"github.com/Bunny3th/easy-workflow/workflow/database"
 	. "github.com/Bunny3th/easy-workflow/workflow/model"
 )
 
@@ -12,28 +13,59 @@ import (
 //思考，一个节点可能分配了N位用户，所以生成节点对应的Task的时候，也需要生成N条Task
 //一个节点的上级节点可能不是一个，节点驳回的时候，就需要知道往哪个节点驳回,所以需要记录上一个节点是谁
 func CreateTask(ProcessInstanceID int, NodeID string, PrevNodeID string, UserIDs []string) ([]int, error) {
-	type user struct {
-		UserID string
+	//获取流程ID
+	ProcID, err := GetProcessIDByInstanceID(ProcessInstanceID)
+	if err != nil {
+		return nil, err
 	}
 
-	var users []user
+	//获取Node信息
+	Node, err := GetInstanceNode(ProcessInstanceID, NodeID)
+	if err != nil {
+		return nil, err
+	}
 
+	//生成批次码
+	var BatchCode string
+	_, err = ExecSQL("SELECT UUID()", &BatchCode)
+	if err != nil {
+		return nil, err
+	}
+
+	//开始生成数据
+	var tasks []database.Task
 	for _, u := range UserIDs {
-		users = append(users, user{u})
+		tasks = append(tasks, database.Task{ProcID: ProcID, ProcInstID: ProcessInstanceID, NodeID: NodeID,
+			PrevNodeID: PrevNodeID, IsCosigned: Node.IsCosigned, BatchCode: BatchCode, UserID: u})
 	}
 
-	j, err := json.Marshal(users)
-	if err != nil {
-		return nil, err
+	//开启事务
+	tx := DB.Begin()
+
+	//Task存入数据库
+	result := tx.Create(&tasks)
+	if result.Error != nil {
+		tx.Rollback()
+		return nil, result.Error
 	}
 
-	var r []int
-
-	_, err = ExecSQL("call sp_task_create(?,?,?,?)", &r, ProcessInstanceID, NodeID, PrevNodeID, j)
-	if err != nil {
-		return nil, err
+	//更新proc_inst表`current_node_id`字段
+	result = tx.Raw("update proc_inst set current_node_id=? where id=?;", NodeID, ProcessInstanceID)
+	if result.Error != nil {
+		tx.Rollback()
+		return nil, result.Error
 	}
-	return r, nil
+
+	//提交事务
+	tx.Commit()
+
+	//获取存入数据库后生成的TaskID
+	var TaskIDs []int
+	for _, t := range tasks {
+		TaskIDs = append(TaskIDs, t.ID)
+	}
+
+	return TaskIDs, nil
 }
 
 //task做通过、处理时可能会有一些附加功能，放在这里。

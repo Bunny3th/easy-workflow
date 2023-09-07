@@ -17,7 +17,7 @@ type Node struct {
 	UserIDs     []string      //节点处理人数组
 	Roles       []string      //节点处理角色数组。注意，因为系统无法预先知道角色中存在多少用户，所以必须用StartEvents解析角色，将角色中的用户加到UserIDs中
 	GWConfig    HybridGateway //网关。只有在节点类型为GateWay的情况下此字段才会有值
-	IsCosigned  int8          //是否会签  只有任务节点才会用到，会签的情况下需要所有任务通过才能进行下一节点，只要有一人反对，则整个节点驳回
+	IsCosigned  int           //是否会签  只有任务节点才会用到，会签的情况下需要所有任务通过才能进行下一节点，只要有一人反对，则整个节点驳回
 	StartEvents []string      //节点开始时触发的事件
 	EndEvents   []string      //节点结束时触发的事件
 }

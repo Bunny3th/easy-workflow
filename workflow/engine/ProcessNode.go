@@ -83,84 +83,86 @@ func EndNodeHandle(ProcessInstanceID int, Status int) error {
 	tx := dao.DB.Begin()
 
 	//将task表中所有该流程未finish的设置为finish
-	_, err := dao.ExecSQL("UPDATE task SET is_finished=1,finished_time=NOW() "+
-		"WHERE proc_inst_id=? AND is_finished=0;", nil, ProcessInstanceID)
-	if err != nil {
+	result := tx.Raw("UPDATE task SET is_finished=1,finished_time=NOW() "+
+		"WHERE proc_inst_id=? AND is_finished=0;", ProcessInstanceID)
+	if result.Error != nil {
 		tx.Rollback()
-		return err
+		return result.Error
 	}
 
 	//将task表中任务归档
-	_, err = dao.ExecSQL("INSERT INTO hist_task(task_id,proc_id,proc_inst_id,node_id,prev_node_id,is_cosigned,\n"+
+	result = tx.Raw("INSERT INTO hist_task(task_id,proc_id,proc_inst_id,node_id,prev_node_id,is_cosigned,\n"+
 		"batch_code,user_id,is_passed,is_finished,create_time,finished_time)\n "+
 		"SELECT id,proc_id,proc_inst_id,node_id,prev_node_id,is_cosigned,batch_code,user_id,is_passed,\n"+
 		"is_finished,create_time,finished_time \n"+
-		"FROM task WHERE proc_inst_id=?;", nil, ProcessInstanceID)
-	if err != nil {
+		"FROM task WHERE proc_inst_id=?;", ProcessInstanceID)
+	if result.Error != nil {
 		tx.Rollback()
-		return err
+		return result.Error
 	}
 
 	//删除task表中历史数据
-	_, err = dao.ExecSQL(" DELETE FROM task WHERE proc_inst_id=?;", nil, ProcessInstanceID)
-	if err != nil {
+	result = tx.Raw(" DELETE FROM task WHERE proc_inst_id=?;", ProcessInstanceID)
+	if result.Error != nil {
 		tx.Rollback()
-		return err
+		return result.Error
 	}
 
 	//更新proc_inst表中状态
-	_, err = dao.ExecSQL("UPDATE proc_inst SET `status`=? WHERE id=?;", nil, Status, ProcessInstanceID)
-	if err != nil {
+	result = tx.Raw("UPDATE proc_inst SET `status`=? WHERE id=?;", Status, ProcessInstanceID)
+	if result.Error != nil {
 		tx.Rollback()
-		return err
+		return result.Error
 	}
 
 	//将proc_inst表中数据归档
-	_, err = dao.ExecSQL("INSERT INTO hist_proc_inst(proc_inst_id,proc_id,proc_version,business_id,current_node_id,create_time,`status`)\n        "+
+	result = tx.Raw("INSERT INTO hist_proc_inst(proc_inst_id,proc_id,proc_version,business_id,current_node_id,create_time,`status`)\n        "+
 		"SELECT id,proc_id,proc_version,business_id,current_node_id,create_time,`status`\n        "+
 		"FROM proc_inst \n        "+
-		"WHERE id=?; ", nil, ProcessInstanceID)
-	if err != nil {
+		"WHERE id=?; ", ProcessInstanceID)
+	if result.Error != nil {
 		tx.Rollback()
-		return err
+		return result.Error
 	}
 
 	//删除proc_inst表中历史数据
-	_, err = dao.ExecSQL("DELETE FROM proc_inst WHERE id=?;", nil, ProcessInstanceID)
-	if err != nil {
+	result = tx.Raw("DELETE FROM proc_inst WHERE id=?;", ProcessInstanceID)
+	if result.Error != nil {
 		tx.Rollback()
-		return err
+		return result.Error
 	}
 
 	//将task_comment归档
-	_, err = dao.ExecSQL("INSERT INTO hist_task_comment(proc_inst_id,task_id,`comment`)\n        "+
-		"SELECT proc_inst_id,task_id,`comment` FROM task_comment WHERE proc_inst_id=?;", nil, ProcessInstanceID)
-	if err != nil {
+	result = tx.Raw("INSERT INTO hist_task_comment(proc_inst_id,task_id,`comment`)\n        "+
+		"SELECT proc_inst_id,task_id,`comment` FROM task_comment WHERE proc_inst_id=?;", ProcessInstanceID)
+	if result.Error != nil {
 		tx.Rollback()
-		return err
+		return result.Error
 	}
 
 	//删除task_comment中历史数据
-	_, err = dao.ExecSQL("DELETE FROM task_comment WHERE proc_inst_id=?;", nil, ProcessInstanceID)
-	if err != nil {
+	result = tx.Raw("DELETE FROM task_comment WHERE proc_inst_id=?;", ProcessInstanceID)
+	if result.Error != nil {
 		tx.Rollback()
-		return err
+		return result.Error
 	}
 
 	//将proc_inst_variable表中数据归档
-	_, err = dao.ExecSQL("INSERT INTO hist_proc_inst_variable(proc_inst_id,`key`,`value`)\n"+
-		"SELECT proc_inst_id,`key`,`value` FROM proc_inst_variable WHERE proc_inst_id=?;", nil, ProcessInstanceID)
-	if err != nil {
+	result = tx.Raw("INSERT INTO hist_proc_inst_variable(proc_inst_id,`key`,`value`)\n"+
+		"SELECT proc_inst_id,`key`,`value` FROM proc_inst_variable WHERE proc_inst_id=?;", ProcessInstanceID)
+	if result.Error != nil {
 		tx.Rollback()
-		return err
+		return result.Error
 	}
 
 	//删除proc_inst_variable表中历史数据
-	_, err = dao.ExecSQL("DELETE FROM proc_inst_variable WHERE proc_inst_id=?;", nil, ProcessInstanceID)
-	if err != nil {
+	result = tx.Raw("DELETE FROM proc_inst_variable WHERE proc_inst_id=?;", ProcessInstanceID)
+	if result.Error != nil {
 		tx.Rollback()
-		return err
+		return result.Error
 	}
+	//提交事务
+	tx.Commit()
 
 	return nil
 }
@@ -251,7 +253,7 @@ func GateWayNodeHandle(ProcessInstanceID int, CurrentNode *Node, PrevTaskNode No
 		}
 
 		//计算表达式，如果成功，则将节点添加到下一级节点组中
-		ok,err:=ExpressionEvaluator(expression)
+		ok, err := ExpressionEvaluator(expression)
 		if err != nil {
 			return err
 		}
