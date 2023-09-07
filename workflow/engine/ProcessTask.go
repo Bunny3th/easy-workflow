@@ -50,7 +50,7 @@ func CreateTask(ProcessInstanceID int, NodeID string, PrevNodeID string, UserIDs
 	}
 
 	//更新proc_inst表`current_node_id`字段
-	result = tx.Raw("update proc_inst set current_node_id=? where id=?;", NodeID, ProcessInstanceID)
+	result=tx.Model(&database.ProcInst{}).Where("id=?",ProcessInstanceID).Update("current_node_id",NodeID)
 	if result.Error != nil {
 		tx.Rollback()
 		return nil, result.Error

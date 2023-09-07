@@ -82,8 +82,10 @@ func EndNodeHandle(ProcessInstanceID int, Status int) error {
 	//开启事务
 	tx := dao.DB.Begin()
 
+	//***这里注意，经过多次测试，执行原生SQL，无返回值必须用Exec,用Raw会不执行***
+
 	//将task表中所有该流程未finish的设置为finish
-	result := tx.Raw("UPDATE task SET is_finished=1,finished_time=NOW() "+
+	result := tx.Exec("UPDATE task SET is_finished=1,finished_time=NOW() "+
 		"WHERE proc_inst_id=? AND is_finished=0;", ProcessInstanceID)
 	if result.Error != nil {
 		tx.Rollback()
@@ -91,7 +93,7 @@ func EndNodeHandle(ProcessInstanceID int, Status int) error {
 	}
 
 	//将task表中任务归档
-	result = tx.Raw("INSERT INTO hist_task(task_id,proc_id,proc_inst_id,node_id,prev_node_id,is_cosigned,\n"+
+	result = tx.Exec("INSERT INTO hist_task(task_id,proc_id,proc_inst_id,node_id,prev_node_id,is_cosigned,\n"+
 		"batch_code,user_id,is_passed,is_finished,create_time,finished_time)\n "+
 		"SELECT id,proc_id,proc_inst_id,node_id,prev_node_id,is_cosigned,batch_code,user_id,is_passed,\n"+
 		"is_finished,create_time,finished_time \n"+
@@ -102,21 +104,21 @@ func EndNodeHandle(ProcessInstanceID int, Status int) error {
 	}
 
 	//删除task表中历史数据
-	result = tx.Raw(" DELETE FROM task WHERE proc_inst_id=?;", ProcessInstanceID)
+	result = tx.Exec(" DELETE FROM task WHERE proc_inst_id=?;", ProcessInstanceID)
 	if result.Error != nil {
 		tx.Rollback()
 		return result.Error
 	}
 
 	//更新proc_inst表中状态
-	result = tx.Raw("UPDATE proc_inst SET `status`=? WHERE id=?;", Status, ProcessInstanceID)
+	result = tx.Exec("UPDATE proc_inst SET `status`=? WHERE id=?;", Status, ProcessInstanceID)
 	if result.Error != nil {
 		tx.Rollback()
 		return result.Error
 	}
 
 	//将proc_inst表中数据归档
-	result = tx.Raw("INSERT INTO hist_proc_inst(proc_inst_id,proc_id,proc_version,business_id,current_node_id,create_time,`status`)\n        "+
+	result = tx.Exec("INSERT INTO hist_proc_inst(proc_inst_id,proc_id,proc_version,business_id,current_node_id,create_time,`status`)\n        "+
 		"SELECT id,proc_id,proc_version,business_id,current_node_id,create_time,`status`\n        "+
 		"FROM proc_inst \n        "+
 		"WHERE id=?; ", ProcessInstanceID)
@@ -126,14 +128,14 @@ func EndNodeHandle(ProcessInstanceID int, Status int) error {
 	}
 
 	//删除proc_inst表中历史数据
-	result = tx.Raw("DELETE FROM proc_inst WHERE id=?;", ProcessInstanceID)
+	result = tx.Exec("DELETE FROM proc_inst WHERE id=?;", ProcessInstanceID)
 	if result.Error != nil {
 		tx.Rollback()
 		return result.Error
 	}
 
 	//将task_comment归档
-	result = tx.Raw("INSERT INTO hist_task_comment(proc_inst_id,task_id,`comment`)\n        "+
+	result = tx.Exec("INSERT INTO hist_task_comment(proc_inst_id,task_id,`comment`)\n        "+
 		"SELECT proc_inst_id,task_id,`comment` FROM task_comment WHERE proc_inst_id=?;", ProcessInstanceID)
 	if result.Error != nil {
 		tx.Rollback()
@@ -141,14 +143,14 @@ func EndNodeHandle(ProcessInstanceID int, Status int) error {
 	}
 
 	//删除task_comment中历史数据
-	result = tx.Raw("DELETE FROM task_comment WHERE proc_inst_id=?;", ProcessInstanceID)
+	result = tx.Exec("DELETE FROM task_comment WHERE proc_inst_id=?;", ProcessInstanceID)
 	if result.Error != nil {
 		tx.Rollback()
 		return result.Error
 	}
 
 	//将proc_inst_variable表中数据归档
-	result = tx.Raw("INSERT INTO hist_proc_inst_variable(proc_inst_id,`key`,`value`)\n"+
+	result = tx.Exec("INSERT INTO hist_proc_inst_variable(proc_inst_id,`key`,`value`)\n"+
 		"SELECT proc_inst_id,`key`,`value` FROM proc_inst_variable WHERE proc_inst_id=?;", ProcessInstanceID)
 	if result.Error != nil {
 		tx.Rollback()
@@ -156,7 +158,7 @@ func EndNodeHandle(ProcessInstanceID int, Status int) error {
 	}
 
 	//删除proc_inst_variable表中历史数据
-	result = tx.Raw("DELETE FROM proc_inst_variable WHERE proc_inst_id=?;", ProcessInstanceID)
+	result = tx.Exec("DELETE FROM proc_inst_variable WHERE proc_inst_id=?;", ProcessInstanceID)
 	if result.Error != nil {
 		tx.Rollback()
 		return result.Error
