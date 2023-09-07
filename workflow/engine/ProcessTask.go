@@ -322,7 +322,49 @@ func TaskFreeRejectToUpstreamNode(TaskID int, NodeID string, Comment string, Var
 //获取流程实例下任务历史记录
 func GetInstanceTaskHistory(ProcessInstanceID int) ([]Task, error) {
 	var tasklist []Task
-	_, err := ExecSQL("call sp_proc_inst_task_hist(?)", &tasklist, ProcessInstanceID)
+	sql:="WITH tmp_task AS(\n" +
+		"SELECT task_id AS id,proc_id,proc_inst_id,node_id,prev_node_id,\n        " +
+		"is_cosigned,batch_code,user_id,is_passed,is_finished,create_time,finished_time\n        " +
+		"FROM hist_task\n        " +
+		"WHERE proc_id=?\n        " +
+		"UNION ALL\n        " +
+		"SELECT id,proc_id,proc_inst_id,node_id,prev_node_id,\n        " +
+		"is_cosigned,batch_code,user_id,is_passed,is_finished,create_time,finished_time \n        " +
+		"FROM task   \n        " +
+		"WHERE proc_id=?\n    " +
+		"),tmp_proc AS(\n        " +
+		"SELECT id,business_id FROM proc_inst WHERE id=?\n        " +
+		"UNION ALL\n        " +
+		"SELECT proc_inst_id AS id,business_id FROM hist_proc_inst WHERE proc_inst_id=?\n    " +
+		"),tmp_task_comment AS (\n        " +
+		"SELECT task_id,COMMENT FROM task_comment\n        " +
+		"UNION ALL\n        " +
+		"SELECT task_id,COMMENT FROM hist_task_comment    \n    " +
+		"),tmp_proc_inst AS (\n        " +
+		"SELECT id,business_id FROM proc_inst\n        " +
+		"UNION ALL\n        " +
+		"SELECT id,business_id FROM hist_proc_inst    \n    " +
+		")\n    \n    " +
+		"SELECT DISTINCT\n    " +
+		"a.id,\n    " +
+		"a.proc_id,\n    " +
+		"a.proc_inst_id,\n    " +
+		"c.business_id,\n    " +
+		"a.node_id,\n    " +
+		"b.node_name,\n    " +
+		"a.is_cosigned,\n    " +
+		"a.batch_code,\n    " +
+		"a.user_id,\n    a.is_passed,\n    " +
+		"a.is_finished,\n    d.comment,\n    " +
+		"DATE_FORMAT(a.create_time,'%Y-%m-%d %T')  AS create_time,\n    " +
+		"DATE_FORMAT(a.finished_time,'%Y-%m-%d %T') AS finished_time    \n    " +
+		"FROM \n    " +
+		"tmp_task a\n    " +
+		"LEFT JOIN proc_execution b ON a.node_id=b.node_id\n    " +
+		"LEFT JOIN tmp_proc_inst c ON a.proc_inst_id=c.id\n    " +
+		"LEFT JOIN tmp_task_comment d ON a.id=d.task_id\n    " +
+		"ORDER BY a.id;"
+	_, err := ExecSQL(sql, &tasklist, ProcessInstanceID,ProcessInstanceID,ProcessInstanceID,ProcessInstanceID)
 	if err != nil {
 		return nil, err
 	}
