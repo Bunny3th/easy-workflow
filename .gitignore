@@ -9,7 +9,7 @@
 
 logs/
 .idea/
-database/
+数据库备份/
 test/
 *.exe
 
