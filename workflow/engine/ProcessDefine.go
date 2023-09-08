@@ -1,11 +1,14 @@
 package engine
 
 import (
-	"encoding/json"
+	//"encoding/json"
 	"errors"
 	"github.com/Bunny3th/easy-workflow/workflow/dao"
+	"github.com/Bunny3th/easy-workflow/workflow/database"
 	. "github.com/Bunny3th/easy-workflow/workflow/model"
 	"github.com/Bunny3th/easy-workflow/workflow/util"
+	"gorm.io/gorm"
+	"time"
 )
 
 //流程定义解析(json->struct)
@@ -18,7 +21,7 @@ func ProcessParse(Resource string) ([]Node, error) {
 	return nodes, nil
 }
 
-//待办这里要写一个func，检查解析后的node结构，比如是否只有一个开始和结束节点
+//todo:这里要写一个func，检查解析后的node结构，比如是否只有一个开始和结束节点
 
 //流程定义保存,返回 流程ID、error
 func ProcessSave(ProcessName string, Resource string, CreateUserID string, Source string) (int, error) {
@@ -32,35 +35,99 @@ func ProcessSave(ProcessName string, Resource string, CreateUserID string, Sourc
 		return 0, err
 	}
 
-	//解析node之间的关系，转为json，以便存入数据库
-	execution, err := Nodes2Execution(nodes)
+	//解析node之间的关系，流程节点执行关系定义记录
+	Execution := Nodes2Execution(nodes)
+
+	//首先判断此工作流是否已定义
+	ProcID, Version, err := GetProcessIDByProcessName(dao.DB, ProcessName, Source)
 	if err != nil {
 		return 0, err
 	}
 
-	type result struct {
-		ID    int
-		Error string
+	//开启事务
+	tx := dao.DB.Begin()
+	//判断工作流是否已经定义
+	if ProcID != 0 { //已有老版本
+		//需要将老版本移到历史表中
+		result := tx.Exec("INSERT INTO hist_proc_def(proc_id,NAME,`version`,resource,user_id,source,create_time)\n        "+
+			"SELECT id,NAME,`version`,resource,user_id,source,create_time\n"+
+			"FROM proc_def WHERE NAME=? AND source=?;", ProcessName, Source)
+		if result.Error != nil {
+			tx.Rollback()
+			return 0, result.Error
+		}
+		//而后更新现有定义
+		result = tx.Model(&database.ProcDef{}).
+			Where("name=? AND source=?", ProcessName, Source).
+			Updates(database.ProcDef{Version: Version + 1, Resource: Resource, UserID: CreateUserID, CreatTime: time.Now()})
+		if result.Error != nil {
+			tx.Rollback()
+			return 0, result.Error
+		}
+	} else {
+		//若没有老版本，则直接插入
+		procDef := database.ProcDef{Name: ProcessName, Resource: Resource, UserID: CreateUserID, Source: Source}
+		result := tx.Create(&procDef)
+		if result.Error != nil {
+			tx.Rollback()
+			return 0, result.Error
+		}
 	}
-	//存入数据库
-	var r result
-	_, err = dao.ExecSQL("CALL sp_proc_def_save(?,?,?,?,?)", &r, ProcessName, Resource, execution, CreateUserID, Source)
+	//重新获得流程ID、版本号,此时因为是在事务中，所以需要传入tx
+	ProcID, Version, err = GetProcessIDByProcessName(tx, ProcessName, Source)
 	if err != nil {
 		return 0, err
 	}
 
-	if r.Error != "" {
-		return 0, errors.New(r.Error)
+	//将proc_execution表对应数据移到历史表中
+	result := tx.Exec("INSERT INTO hist_proc_execution(proc_id,proc_version,node_id,node_name,\n"+
+		"prev_node_id,node_type,is_cosigned,create_time)\n"+
+		"SELECT proc_id,proc_version,node_id,node_name,\n"+
+		"prev_node_id,node_type,is_cosigned,create_time\n"+
+		"FROM proc_execution WHERE proc_id=?;", ProcID)
+	if result.Error != nil {
+		tx.Rollback()
+		return 0, result.Error
 	}
+
+	//而后删除proc_execution表对应数据
+	result = tx.Where("proc_id=?", ProcID).Delete(&database.ProcExecution{})
+	if result.Error != nil {
+		tx.Rollback()
+		return 0, result.Error
+	}
+
+	//将新的Execution定义插入proc_execution表
+	var procExecution []database.ProcExecution
+	for _, e := range Execution {
+		procExecution = append(procExecution, database.ProcExecution{
+			ProcID:      ProcID,
+			ProcVersion: Version,
+			NodeID:      e.NodeID,
+			NodeName:    e.NodeName,
+			PrevNodeID:  e.PrevNodeID,
+			NodeType:    e.NodeType,
+			IsCosigned:  e.IsCosigned,
+		})
+	}
+
+	result = tx.Create(&procExecution)
+	if result.Error != nil {
+		tx.Rollback()
+		return 0, result.Error
+	}
+
+	//事务提交
+	tx.Commit()
 
 	//移除cache中对应流程ID的内容(如果有)
-	delete(ProcCache, r.ID)
+	delete(ProcCache, ProcID)
 
-	return r.ID, nil
+	return ProcID, nil
 }
 
 //将Node转为可被数据库表记录的执行步骤。节点的PrevNodeID可能是n个，则在数据库表中需要存n行
-func Nodes2Execution(nodes []Node) (string, error) {
+func Nodes2Execution(nodes []Node) []Execution {
 	var executions []Execution
 	for _, n := range nodes {
 		if len(n.PrevNodeIDs) <= 1 { //上级节点数<=1的情况下
@@ -89,23 +156,28 @@ func Nodes2Execution(nodes []Node) (string, error) {
 			}
 		}
 	}
-	//转为json
-	json, err := json.Marshal(executions)
-	if err != nil {
-		return "", err
-	}
-	return string(json), nil
+	return executions
+	////转为json
+	//json, err := json.Marshal(executions)
+	//if err != nil {
+	//	return "", err
+	//}
+	//return string(json), nil
 }
 
-//获取流程ID by 流程名、来源
-func GetProcessIDByProcessName(ProcessName string, Source string) (int, error) {
-	var ID int
-	_, err := dao.ExecSQL("SELECT id FROM proc_def where name=? and source=?", &ID, ProcessName, Source)
-	if err != nil {
-		return 0, err
+//获取流程ID、Version by 流程名、来源
+func GetProcessIDByProcessName(db *gorm.DB, ProcessName string, Source string) (int, int, error) {
+	type Result struct {
+		ID      int
+		Version int
+	}
+	var result Result
+	r := db.Raw("SELECT id,version FROM proc_def where name=? and source=?", ProcessName, Source).Scan(&result)
+	if r.Error != nil {
+		return 0, 0, r.Error
 	}
 
-	return ID, nil
+	return result.ID, result.Version, nil
 }
 
 //获取流程ID by 流程实例ID
