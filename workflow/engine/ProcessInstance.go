@@ -4,7 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Bunny3th/easy-workflow/workflow/dao"
+	"github.com/Bunny3th/easy-workflow/workflow/database"
 	. "github.com/Bunny3th/easy-workflow/workflow/model"
+	. "github.com/Bunny3th/easy-workflow/workflow/util"
 )
 
 //map [NodeID]Node
@@ -60,28 +62,40 @@ func InstanceInit(ProcessID int, BusinessID string, VariableJson string) (int, N
 	if r.Node_ID == "" {
 		return 0, Node{}, fmt.Errorf("无法获取流程ID为%d的开始节点", ProcessID)
 	}
+
 	//获得开始节点
 	StartNode := nodes[r.Node_ID]
 
+	//-----------------------------------开始处理数据-----------------------------------
 	//1、在proc_inst表中生成一条记录
 	//2、在proc_inst_variable表中记录流程实例的变量
 	//3、返回proc_inst_id(流程实例ID)
-	type result2 struct {
-		ID    int
-		Error string
-	}
-	var r2 result2
 
-	_, err = dao.ExecSQL("call sp_proc_inst_init(?,?,?,?)", &r2, ProcessID, BusinessID, StartNode.NodeID, VariableJson)
+	//获取流程定义信息
+	var procDef database.ProcDef
+	dao.DB.Where("id=?", ProcessID).First(&procDef)
+
+	//开启事务
+	tx := dao.DB.Begin()
+	//在实例表中生成一条数据
+	procInst := database.ProcInst{ProcID: ProcessID, ProcVersion: procDef.Version, BusinessID: BusinessID, CurrentNodeID: StartNode.NodeID}
+	re := tx.Create(&procInst)
+	if re.Error != nil {
+		tx.Rollback()
+		return 0, StartNode, re.Error
+	}
+
+	//保存流程变量
+	err = InstanceVariablesSave(procInst.ID, VariableJson)
 	if err != nil {
-		return 0, Node{}, err
+		tx.Rollback()
+		return 0, StartNode, err
 	}
 
-	if r2.Error != "" {
-		return 0, Node{}, errors.New(r2.Error)
-	}
+	//关闭事务
+	tx.Commit()
 
-	return r2.ID, StartNode, nil
+	return procInst.ID, StartNode, nil
 }
 
 //开始流程实例 返回流程实例ID
@@ -120,4 +134,46 @@ func InstanceRevoke(ProcessInstanceID int, Force bool) error {
 	//调用EndNodeHandle,做数据清理归档
 	err := EndNodeHandle(ProcessInstanceID, 2)
 	return err
+}
+
+//流程实例变量存入数据库
+func InstanceVariablesSave(ProcessInstanceID int, VariablesJson string) error {
+	type Variable struct {
+		Key   string
+		Value string
+	}
+	//获取变量数组
+	var variables []Variable
+	Json2Struct(VariablesJson, &variables)
+
+	tx := dao.DB.Begin()
+	for _, v := range variables {
+		var ProcInstVariable database.ProcInstVariable
+		result := tx.Raw("SELECT * FROM proc_inst_variable WHERE proc_inst_id=? AND `key`=? ORDER BY id LIMIT 1",
+			ProcessInstanceID, v.Key).Scan(&ProcInstVariable)
+		if result.Error != nil {
+			tx.Rollback()
+			return result.Error
+		}
+		if ProcInstVariable.ID == 0 { //说明数据库中无此数据
+			//插入
+			result := tx.Create(&database.ProcInstVariable{ProcInstID: ProcessInstanceID, Key: v.Key, Value: v.Value})
+			if result.Error != nil {
+				tx.Rollback()
+				return result.Error
+			}
+		} else { //数据库中已有数据
+			//更新
+			result := tx.Model(&database.ProcInstVariable{}).
+				Where("proc_inst_id=? and `key`=?", ProcessInstanceID, v.Key).Update("value", v.Value)
+			if result.Error != nil {
+				tx.Rollback()
+				return result.Error
+			}
+		}
+	}
+
+	tx.Commit()
+
+	return nil
 }
