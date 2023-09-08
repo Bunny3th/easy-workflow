@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"database/sql"
 	//"encoding/json"
 	"errors"
 	"fmt"
@@ -371,4 +372,121 @@ func GetInstanceTaskHistory(ProcessInstanceID int) ([]Task, error) {
 		return nil, err
 	}
 	return tasklist, nil
+}
+
+//获取任务执行完毕后下一个节点
+func TaskNextNode(TaskID int) (Node, error) {
+	taskInfo, err := GetTaskInfo(TaskID)
+	if err != nil {
+		return Node{}, err
+	}
+
+	//获取任务节点审批状态
+	TotalTask, TotalPassed, TotalRejectedTaskNodeStatus, err := TaskNodeStatus(TaskID)
+	if err != nil {
+		return Node{}, err
+	}
+
+	//1、非会签且通过
+	//2、会签且通过,目前节点中通过数与总任务数一致
+	//以上两种情况，直接流向“流程定义中该任务节点的下一个节点”
+	if (taskInfo.IsCosigned == 0 && taskInfo.Status == 1) ||
+		(taskInfo.IsCosigned == 1 && TotalTask == TotalPassed) {
+		//流程定义中该任务节点的下一个节点,注意:
+		//任务节点的下一个节点永远只有一个，一个任务节点下不可能直接衍生出多个任务节点,因为衍生多个节点是网关的任务
+		//而本项目中是混合网关，任务节点下没有必要生成多个网关
+		var ProcExecutionNextNode database.ProcExecution
+		result := DB.Where("prev_node_id=?", taskInfo.NodeID).First(&ProcExecutionNextNode)
+		if result.Error != nil {
+			return Node{}, result.Error
+		}
+		return GetInstanceNode(taskInfo.ProcInstID, ProcExecutionNextNode.NodeID)
+	}
+
+	/*接下来判断在驳回的情况下，应该到哪个节点
+	# 注意，由于有自由驳回与DirectlyReturnToWhoRejectedMe(简称DR)两个能跨节点的功能，这里需要做比较复杂的判断
+	# 考虑这样一种情况 A、B、C、D、E 五个节点：
+	# E直接驳回到A，A使用DR重新提交到E，此时E再驳回，肯定不是想驳回到流程定义中的D，而是驳回到A
+	# 此时task表中E任务的prev_node_id 字段为A,正是E想要驳回到的节点
+	# 那么驳回时判断下一节点就直接使用 prev_node_id 字段？不行！考虑以下情况:
+	# E驳回到D，此时D任务的prev_node_id是E，D再驳回，难道驳回到E？
+	# 所以，节点驳回后应到哪个节点，应该分两步判断：
+	# 1、如果X节点是由Y节点通过后流程到达，则X驳回时直接用 prev_node_id 字段
+	# 2、如果X节点是由Y节点驳回后流程到达，则X驳回应使用流程定义中的"上一个节点"
+	*/
+
+	var PrevNodeID string
+
+	//获得实际执行过程中上一个节点的BatchCode
+	type BatchCode struct {
+		BatchCode string `gorm:"column:batch_code"`
+	}
+	var batchCode BatchCode
+	//找到第一个node_id=本任务prev_node_id的节点BatchCode，这就是实际执行过程中上一个节点的BatchCode
+	result := DB.Raw("SELECT a.batch_code FROM task a\n    " +
+		"JOIN \n" +
+		"(SELECT prev_node_id,proc_inst_id FROM task WHERE id=var_task_id) b \n    " +
+		"ON a.node_id=b.prev_node_id AND a.proc_inst_id=b.proc_inst_id\n    " +
+		"ORDER BY a.id DESC LIMIT 1;").Scan(&batchCode)
+	if result.Error != nil {
+		return Node{}, result.Error
+	}
+
+	//上一个实际执行过程中状态为驳回的任务
+	var prevTask database.Task
+	result = DB.Raw("SELECT id FROM task WHERE batch_code =? AND `status`=2 LIMIT 1", batchCode.BatchCode).Scan(&prevTask)
+	if result.Error != nil {
+		return Node{}, result.Error
+	}
+
+	//没有找到,说明上一个节点中没有做驳回
+	if prevTask.ID == 0 {
+		//直接使用本任务的prev_node_id字段作为上一个节点
+		PrevNodeID = taskInfo.PrevNodeID
+	} else {
+		//若上一个节点是驳回，则用递归逆推获得流程定义中上一个节点
+		Nodes, err := TaskUpstreamNodeList(TaskID)
+		if err != nil {
+			return Node{}, err
+		}
+
+		PrevNodeID = Nodes[0].NodeID
+	}
+
+	//不管是否会签，驳回都会返回上一个节点
+	if taskInfo.Status==2{
+		return GetInstanceNode(taskInfo.ProcInstID, PrevNodeID)
+	}
+
+
+	return Node{}, nil
+
+}
+
+//任务节点审批状态 返回节点总任务数量、通过数、驳回数、
+func TaskNodeStatus(TaskID int) (int, int, int, error) {
+	taskInfo, err := GetTaskInfo(TaskID)
+	if err != nil {
+		return 0, 0, 0, err
+	}
+
+	type Result struct {
+		TotalTask     int `gorm:"column:total_task"`
+		TotalPassed   int `gorm:"column:total_passed"`
+		TotalRejected int int `gorm:"column:total_rejected"`
+	}
+	var result Result
+
+	r := DB.Raw("SELECT COUNT(*) AS total_task,\n"+
+		"SUM(CASE `status` WHEN 1 THEN 1 ELSE 0 END) AS total_passed,\n"+
+		"SUM(CASE `status` WHEN 2 THEN 1 ELSE 0 END) AS total_rejected \n"+
+		"FROM task \n"+
+		"WHERE proc_inst_id=? \n "+
+		"AND node_id=? \n  "+
+		"AND `batch_code`=?;", taskInfo.ProcInstID, taskInfo.NodeID, taskInfo.BatchCode).Scan(&result)
+	if r.Error != nil {
+		return 0, 0, 0, r.Error
+	}
+
+	return result.TotalTask, result.TotalPassed, result.TotalRejected, nil
 }
