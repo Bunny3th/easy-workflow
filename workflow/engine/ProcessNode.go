@@ -94,8 +94,8 @@ func EndNodeHandle(ProcessInstanceID int, Status int) error {
 
 	//将task表中任务归档
 	result = tx.Exec("INSERT INTO hist_task(task_id,proc_id,proc_inst_id,node_id,prev_node_id,is_cosigned,\n"+
-		"batch_code,user_id,is_passed,is_finished,create_time,finished_time)\n "+
-		"SELECT id,proc_id,proc_inst_id,node_id,prev_node_id,is_cosigned,batch_code,user_id,is_passed,\n"+
+		"batch_code,user_id,`status`,is_finished,create_time,finished_time)\n "+
+		"SELECT id,proc_id,proc_inst_id,node_id,prev_node_id,is_cosigned,batch_code,user_id,`status`,\n"+
 		"is_finished,create_time,finished_time \n"+
 		"FROM task WHERE proc_inst_id=?;", ProcessInstanceID)
 	if result.Error != nil {

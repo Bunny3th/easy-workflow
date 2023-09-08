@@ -62,8 +62,8 @@ type Task struct {
 	IsCosigned   int       `gorm:"column:is_cosigned;type:TINYINT DEFAULT 0;default:0;comment:0:任意一人通过即可 1:会签"`
 	BatchCode    string    `gorm:"index:ix_batch_code;column:batch_code;type:VARCHAR(50) DEFAULT NULL;default:NULL;comment:批次码.节点会被驳回，一个节点可能产生多批task,用此码做分别"`
 	UserID       string    `gorm:"column:user_id;type:VARCHAR(250) NOT NULL;comment:分配用户ID"`
-	IsPassed     int       `gorm:"column:is_passed;type:TINYINT DEFAULT NULL;default:NULL;comment:任务是否通过 0:驳回 1:通过"`
-	IsFinished   int       `gorm:"column:is_finished;type:TINYINT DEFAULT 0;default:0;comment:0:任务未处理 1:处理完成.任务未必都是用户处理的，比如会签时一人驳回，其他任务系统自动设为已处理"`
+	Status       int       `gorm:"column:status;type:TINYINT DEFAULT 0;default:0;comment:任务状态:0:初始 1:通过 2:驳回"`
+	IsFinished   int       `gorm:"column:is_finished;type:TINYINT DEFAULT 0;default:0;comment:0:任务未完成 1:处理完成.任务未必都是用户处理的，比如会签时一人驳回，其他任务系统自动设为已处理"`
 	CreateTime   time.Time `gorm:"column:create_time;type:DATETIME DEFAULT NOW();default:NOW();comment:系统创建任务时间"`
 	FinishedTime time.Time `gorm:"column:finished_time;type:DATETIME DEFAULT NULL;default:NULL;comment:处理任务时间"`
 }
@@ -79,8 +79,8 @@ type HistTask struct {
 	IsCosigned   int       `gorm:"column:is_cosigned;type:TINYINT DEFAULT 0;default:0;comment:0:任意一人通过即可 1:会签"`
 	BatchCode    string    `gorm:"index:ix_batch_code;column:batch_code;type:VARCHAR(50) DEFAULT NULL;default:NULL;comment:批次码.节点会被驳回，一个节点可能产生多批task,用此码做分别"`
 	UserID       string    `gorm:"column:user_id;type:VARCHAR(250) NOT NULL;comment:分配用户ID"`
-	IsPassed     int       `gorm:"column:is_passed;type:TINYINT DEFAULT NULL;default:NULL;comment:任务是否通过 0:驳回 1:通过"`
-	IsFinished   int       `gorm:"column:is_finished;type:TINYINT DEFAULT 0;default:0;comment:0:任务未处理 1:处理完成.任务未必都是用户处理的，比如会签时一人驳回，其他任务系统自动设为已处理"`
+	Status       int       `gorm:"column:status;type:TINYINT DEFAULT 0;default:0;comment:任务状态:0:初始 1:通过 2:驳回"`
+	IsFinished   int       `gorm:"column:is_finished;type:TINYINT DEFAULT 0;default:0;comment:0:任务未完成 1:处理完成.任务未必都是用户处理的，比如会签时一人驳回，其他任务系统自动设为已处理"`
 	CreateTime   time.Time `gorm:"column:create_time;type:DATETIME DEFAULT NOW();default:NOW();comment:系统创建任务时间"`
 	FinishedTime time.Time `gorm:"column:finished_time;type:DATETIME DEFAULT NULL;default:NULL;comment:处理任务时间"`
 }

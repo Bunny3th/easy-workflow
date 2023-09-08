@@ -12,8 +12,8 @@ type Task struct {
 	IsCosigned   int    `gorm:"column:is_cosigned"`   //0:任意一人通过即可 1:会签
 	BatchCode    string `gorm:"column:batch_code"`    //批次码.节点会被驳回，一个节点可能产生多批task,用此码做分别
 	UserID       string `gorm:"column:user_id"`       //分配用户ID
-	IsPassed     *int   `gorm:"column:is_passed"`     //任务是否通过 0:驳回 1:通过
-	IsFinished   int    `gorm:"column:is_finished"`   // 0:任务未处理 1:处理完成
+	Status       int    `gorm:"column:status"`        //任务状态:0:初始 1:通过 2:驳回
+	IsFinished   int    `gorm:"column:is_finished"`   // 0:任务未完成 1:处理完成
 	Comment      string `gorm:"column:comment"`       //评论意见
 	CreateTime   string `gorm:"column:create_time"`   //系统创建任务时间
 	FinishedTime string `gorm:"column:finished_time"` // 处理任务时间

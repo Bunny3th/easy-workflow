@@ -50,7 +50,7 @@ func CreateTask(ProcessInstanceID int, NodeID string, PrevNodeID string, UserIDs
 	}
 
 	//更新proc_inst表`current_node_id`字段
-	result=tx.Model(&database.ProcInst{}).Where("id=?",ProcessInstanceID).Update("current_node_id",NodeID)
+	result = tx.Model(&database.ProcInst{}).Where("id=?", ProcessInstanceID).Update("current_node_id", NodeID)
 	if result.Error != nil {
 		tx.Rollback()
 		return nil, result.Error
@@ -221,10 +221,10 @@ func GetTaskToDoList(UserID string) ([]Task, error) {
 func GetTaskFinishedList(UserID string) ([]Task, error) {
 	var tasks []Task
 	sql := "WITH tmp_task AS " +
-		"(SELECT id,proc_id,proc_inst_id,node_id,user_id,create_time,is_passed,is_finished,finished_time \n" +
+		"(SELECT id,proc_id,proc_inst_id,node_id,user_id,create_time,`status`,is_finished,finished_time \n" +
 		"FROM task \n" +
 		"UNION ALL \n" +
-		"SELECT task_id AS id,proc_id,proc_inst_id,node_id,user_id,create_time,is_passed,is_finished,finished_time \n" +
+		"SELECT task_id AS id,proc_id,proc_inst_id,node_id,user_id,create_time,`status`,is_finished,finished_time \n" +
 		"FROM hist_task)\n" +
 		",tmp_task_comment AS \n" +
 		"(SELECT task_id,COMMENT FROM task_comment \n" +
@@ -245,7 +245,7 @@ func GetTaskFinishedList(UserID string) ([]Task, error) {
 		"LEFT JOIN proc_def d ON a.proc_id=d.id \n" +
 		"LEFT JOIN tmp_task_comment e ON a.id=e.task_id WHERE \n" +
 		"a.user_id=?   AND a.is_finished=1  \n" +
-		"AND a.is_passed IS NOT NULL \n" + //有些任务并不是用户自己完成，而是系统自动结束的，这种任务不必给用户看
+		"AND a.`status`!=0 \n" + //有些任务并不是用户自己完成，而是系统自动结束的，此时任务状态还是0，这种任务不必给用户看
 		"ORDER BY a.id;"
 
 	_, err := ExecSQL(sql, &tasks, UserID)
@@ -322,14 +322,14 @@ func TaskFreeRejectToUpstreamNode(TaskID int, NodeID string, Comment string, Var
 //获取流程实例下任务历史记录
 func GetInstanceTaskHistory(ProcessInstanceID int) ([]Task, error) {
 	var tasklist []Task
-	sql:="WITH tmp_task AS(\n" +
+	sql := "WITH tmp_task AS(\n" +
 		"SELECT task_id AS id,proc_id,proc_inst_id,node_id,prev_node_id,\n        " +
-		"is_cosigned,batch_code,user_id,is_passed,is_finished,create_time,finished_time\n        " +
+		"is_cosigned,batch_code,user_id,`status`,is_finished,create_time,finished_time\n        " +
 		"FROM hist_task\n        " +
 		"WHERE proc_id=?\n        " +
 		"UNION ALL\n        " +
 		"SELECT id,proc_id,proc_inst_id,node_id,prev_node_id,\n        " +
-		"is_cosigned,batch_code,user_id,is_passed,is_finished,create_time,finished_time \n        " +
+		"is_cosigned,batch_code,user_id,`status`,is_finished,create_time,finished_time \n        " +
 		"FROM task   \n        " +
 		"WHERE proc_id=?\n    " +
 		"),tmp_proc AS(\n        " +
@@ -354,8 +354,10 @@ func GetInstanceTaskHistory(ProcessInstanceID int) ([]Task, error) {
 		"b.node_name,\n    " +
 		"a.is_cosigned,\n    " +
 		"a.batch_code,\n    " +
-		"a.user_id,\n    a.is_passed,\n    " +
-		"a.is_finished,\n    d.comment,\n    " +
+		"a.user_id,\n    " +
+		"a.`status`,\n    " +
+		"a.is_finished,\n    " +
+		"d.comment,\n    " +
 		"DATE_FORMAT(a.create_time,'%Y-%m-%d %T')  AS create_time,\n    " +
 		"DATE_FORMAT(a.finished_time,'%Y-%m-%d %T') AS finished_time    \n    " +
 		"FROM \n    " +
@@ -364,7 +366,7 @@ func GetInstanceTaskHistory(ProcessInstanceID int) ([]Task, error) {
 		"LEFT JOIN tmp_proc_inst c ON a.proc_inst_id=c.id\n    " +
 		"LEFT JOIN tmp_task_comment d ON a.id=d.task_id\n    " +
 		"ORDER BY a.id;"
-	_, err := ExecSQL(sql, &tasklist, ProcessInstanceID,ProcessInstanceID,ProcessInstanceID,ProcessInstanceID)
+	_, err := ExecSQL(sql, &tasklist, ProcessInstanceID, ProcessInstanceID, ProcessInstanceID, ProcessInstanceID)
 	if err != nil {
 		return nil, err
 	}
