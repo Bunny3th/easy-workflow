@@ -1,13 +1,13 @@
 package engine
 
 import (
-	"database/sql"
 	//"encoding/json"
 	"errors"
 	"fmt"
 	. "github.com/Bunny3th/easy-workflow/workflow/dao"
 	"github.com/Bunny3th/easy-workflow/workflow/database"
 	. "github.com/Bunny3th/easy-workflow/workflow/model"
+	"time"
 )
 
 //生成任务 返回生成的任务ID数组
@@ -83,83 +83,113 @@ type taskOption struct {
 
 //完成任务，在本节点处理完毕的情况下会自动处理下一个节点
 func TaskPass(TaskID int, Comment string, VariableJson string, DirectlyToWhoRejectedMe bool) error {
-	taskOption := taskOption{DirectlyToWhoRejectedMe: DirectlyToWhoRejectedMe}
-	return taskHandle(TaskID, Comment, VariableJson, true, taskOption)
-}
-
-//驳回任务，在本节点处理完毕的情况下会自动处理下一个节点
-func TaskReject(TaskID int, Comment string, VariableJson string) error {
-	return taskHandle(TaskID, Comment, VariableJson, false, taskOption{})
-}
-
-//任务处理
-func taskHandle(TaskID int, Comment string, VariableJson string, Pass bool, option taskOption) error {
 	//获取节点信息
-	task, err := GetTaskInfo(TaskID)
+	taskInfo, err := GetTaskInfo(TaskID)
 	if err != nil {
 		return err
 	}
 	//判断节点是否已处理
-	if task.IsFinished == 1 {
+	if taskInfo.IsFinished == 1 {
 		return fmt.Errorf("节点ID%d已处理，无需操作", TaskID)
 	}
 
-	//判断是通过还是驳回
-	var sql string
-	if Pass == true { //通过
-		sql = "call sp_task_pass(?,?,?,?)"
-	} else { //驳回
-		sql = "call sp_task_reject(?,?,?)"
-		//获取task所在的node
-		taskNode, err := GetInstanceNode(task.ProcInstID, task.NodeID)
+	//------------------------	DirectlyToWhoRejectedMe 功能前置验证 ------------------------
+	//1、是否是会签节点
+	//2、是否存在上一个任务节点?上一个节点是否做的是驳回
+	if DirectlyToWhoRejectedMe {
+		//会签节点无法使用此功能，因为会签节点没有“统一意志”
+		if taskInfo.IsCosigned == 1 {
+			return errors.New("会签节点无法使用【DirectlyToWhoRejectedMe】功能!")
+		}
+
+		//判断任务的上一个节点是不是做了驳回
+		err, PrevNodeIsReject := taskPrevNodeIsReject(taskInfo)
 		if err != nil {
 			return err
 		}
-		//起始节点不能做驳回
-		if taskNode.NodeType == RootNode {
-			return errors.New("起始节点无法驳回!")
+
+		if PrevNodeIsReject == false {
+			return errors.New("此任务的上一节点并未做驳回,无法使用【DirectlyToWhoRejectedMe】功能！")
 		}
 	}
 
-	type result struct {
-		Error            string
-		Next_opt_node_id string
-	}
-	var r result
-	if Pass == true {
-		_, err = ExecSQL(sql, &r, TaskID, Comment, VariableJson, option.DirectlyToWhoRejectedMe)
-	} else {
-		_, err = ExecSQL(sql, &r, TaskID, Comment, VariableJson)
-	}
-
+	//任务提交数据保存
+	err = taskSubmitSave(TaskID, Comment, VariableJson, 1)
 	if err != nil {
 		return err
 	}
 
-	if r.Error != "" {
-		return errors.New(r.Error)
+	//完成任务后的后继处理
+	err = ProcessAfterTaskComplete(TaskID)
+	if err != nil {
+		return err
 	}
-	//如果没有下一个节点要处理，说明此任务节点还有其他任务未提交,直接退出
-	if r.Next_opt_node_id == "" {
+
+	return nil
+}
+
+//驳回任务，在本节点处理完毕的情况下会自动处理下一个节点
+func TaskReject(TaskID int, Comment string, VariableJson string) error {
+	//获取节点信息
+	taskInfo, err := GetTaskInfo(TaskID)
+	if err != nil {
+		return err
+	}
+	//判断节点是否已处理
+	if taskInfo.IsFinished == 1 {
+		return fmt.Errorf("节点ID%d已处理，无需操作", TaskID)
+	}
+
+	//获取task所在的node
+	taskNode, err := GetInstanceNode(taskInfo.ProcInstID, taskInfo.NodeID)
+	if err != nil {
+		return err
+	}
+	//起始节点不能做驳回
+	if taskNode.NodeType == RootNode {
+		return errors.New("起始节点无法驳回!")
+	}
+
+	//任务提交数据保存
+	err = taskSubmitSave(TaskID, Comment, VariableJson, 2)
+	if err != nil {
+		return err
+	}
+
+	//完成任务后的后继处理
+	err = ProcessAfterTaskComplete(TaskID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+//任务完成后的处理
+func ProcessAfterTaskComplete(TaskID int) error {
+	//获取任务执行完毕后下一个节点
+	NextNode, err := TaskNextNode(TaskID)
+	if err != nil {
+		return err
+	}
+
+	//如果需要处理的下一个节点是一个空Node，则说明:当前任务节点还没有处理完,直接退出
+	if NextNode.NodeID == "" {
 		return nil
 	}
 
-	//执行到这一步,说明所在节点任务已全部处理完毕，此时：
+	//执行到这一步,说明所在节点中所有任务已全部处理完毕，此时：
 	//1、处理节点结束事件
 	//2、开始处理下一个节点
-	task, err = GetTaskInfo(TaskID)
-	if err != nil {
-		return err
-	}
 
-	//需要处理的下一个节点
-	NextNode, err := GetInstanceNode(task.ProcInstID, r.Next_opt_node_id)
+	//获取节点信息
+	taskInfo, err := GetTaskInfo(TaskID)
 	if err != nil {
 		return err
 	}
 
 	//当前task所在节点
-	CurrentNode, err := GetInstanceNode(task.ProcInstID, task.NodeID)
+	CurrentNode, err := GetInstanceNode(taskInfo.ProcInstID, taskInfo.NodeID)
 	if err != nil {
 		return err
 	}
@@ -169,20 +199,20 @@ func taskHandle(TaskID int, Comment string, VariableJson string, Pass bool, opti
 	if CurrentNode.NodeType == RootNode {
 		PrevNode = Node{}
 	} else {
-		PrevNode, err = GetInstanceNode(task.ProcInstID, task.PrevNodeID)
+		PrevNode, err = GetInstanceNode(taskInfo.ProcInstID, taskInfo.PrevNodeID)
 		if err != nil {
 			return err
 		}
 	}
 
 	//--------------------------这里处理节点结束事件--------------------------
-	err = RunEvents(CurrentNode.EndEvents, task.ProcInstID, &CurrentNode, PrevNode)
+	err = RunEvents(CurrentNode.EndEvents, taskInfo.ProcInstID, &CurrentNode, PrevNode)
 	if err != nil {
 		return err
 	}
 
 	//--------------------------开始处理下一个节点--------------------------
-	err = ProcessNode(task.ProcInstID, &NextNode, CurrentNode)
+	err = ProcessNode(taskInfo.ProcInstID, &NextNode, CurrentNode)
 	if err != nil {
 		return err
 	}
@@ -382,85 +412,72 @@ func TaskNextNode(TaskID int) (Node, error) {
 	}
 
 	//获取任务节点审批状态
-	TotalTask, TotalPassed, TotalRejectedTaskNodeStatus, err := TaskNodeStatus(TaskID)
+	TotalTask, TotalPassed, _, err := TaskNodeStatus(TaskID)
 	if err != nil {
 		return Node{}, err
 	}
 
-	//1、非会签且通过
-	//2、会签且通过,目前节点中通过数与总任务数一致
-	//以上两种情况，直接流向“流程定义中该任务节点的下一个节点”
-	if (taskInfo.IsCosigned == 0 && taskInfo.Status == 1) ||
-		(taskInfo.IsCosigned == 1 && TotalTask == TotalPassed) {
-		//流程定义中该任务节点的下一个节点,注意:
-		//任务节点的下一个节点永远只有一个，一个任务节点下不可能直接衍生出多个任务节点,因为衍生多个节点是网关的任务
-		//而本项目中是混合网关，任务节点下没有必要生成多个网关
-		var ProcExecutionNextNode database.ProcExecution
-		result := DB.Where("prev_node_id=?", taskInfo.NodeID).First(&ProcExecutionNextNode)
-		if result.Error != nil {
-			return Node{}, result.Error
+	//----------------------------------首先判断任务通过的情况----------------------------------
+	if taskInfo.Status == 1 {
+		//1、非会签且通过
+		//2、会签且通过,目前节点中通过数与总任务数一致
+		//以上两种情况，直接流向“流程定义中该任务节点的下一个节点”
+		if (taskInfo.IsCosigned == 0) ||
+			(taskInfo.IsCosigned == 1 && TotalTask == TotalPassed) {
+			//流程定义中该任务节点的下一个节点,注意:
+			//任务节点的下一个节点永远只有一个，一个任务节点下不可能直接衍生出多个任务节点,因为衍生多个节点是网关的任务
+			//而本项目中是混合网关，任务节点下没有必要生成多个网关
+			var ProcExecutionNextNode database.ProcExecution
+			result := DB.Where("prev_node_id=?", taskInfo.NodeID).First(&ProcExecutionNextNode)
+			if result.Error != nil {
+				return Node{}, result.Error
+			}
+			return GetInstanceNode(taskInfo.ProcInstID, ProcExecutionNextNode.NodeID)
+		} else {
+			return Node{}, nil
 		}
-		return GetInstanceNode(taskInfo.ProcInstID, ProcExecutionNextNode.NodeID)
 	}
 
-	/*接下来判断在驳回的情况下，应该到哪个节点
-	# 注意，由于有自由驳回与DirectlyReturnToWhoRejectedMe(简称DR)两个能跨节点的功能，这里需要做比较复杂的判断
-	# 考虑这样一种情况 A、B、C、D、E 五个节点：
-	# E直接驳回到A，A使用DR重新提交到E，此时E再驳回，肯定不是想驳回到流程定义中的D，而是驳回到A
-	# 此时task表中E任务的prev_node_id 字段为A,正是E想要驳回到的节点
-	# 那么驳回时判断下一节点就直接使用 prev_node_id 字段？不行！考虑以下情况:
-	# E驳回到D，此时D任务的prev_node_id是E，D再驳回，难道驳回到E？
-	# 所以，节点驳回后应到哪个节点，应该分两步判断：
-	# 1、如果X节点是由Y节点通过后流程到达，则X驳回时直接用 prev_node_id 字段
-	# 2、如果X节点是由Y节点驳回后流程到达，则X驳回应使用流程定义中的"上一个节点"
-	*/
+	//----------------------------------接下来判断在驳回的情况下，应该到哪个节点----------------------------------
+	if taskInfo.Status == 2 {
+		/*
+			# 注意，由于有自由驳回与DirectlyReturnToWhoRejectedMe(简称DR)两个能跨节点的功能，这里需要做比较复杂的判断
+			# 考虑这样一种情况 A、B、C、D、E 五个节点：
+			# E直接驳回到A，A使用DR重新提交到E，此时E再驳回，肯定不是想驳回到流程定义中的D，而是驳回到A
+			# 此时task表中E任务的prev_node_id 字段为A,正是E想要驳回到的节点
+			# 那么驳回时判断下一节点就直接使用 prev_node_id 字段？不行！考虑以下情况:
+			# E驳回到D，此时D任务的prev_node_id是E，D再驳回，难道驳回到E？
+			# 所以，节点驳回后应到哪个节点，应该分两步判断：
+			# 1、如果X节点是由Y节点通过后流程到达，则X驳回时直接用 prev_node_id 字段
+			# 2、如果X节点是由Y节点驳回后流程到达，则X驳回应使用流程定义中的"上一个节点"
+		*/
+		var PrevNodeID string
 
-	var PrevNodeID string
-
-	//获得实际执行过程中上一个节点的BatchCode
-	type BatchCode struct {
-		BatchCode string `gorm:"column:batch_code"`
-	}
-	var batchCode BatchCode
-	//找到第一个node_id=本任务prev_node_id的节点BatchCode，这就是实际执行过程中上一个节点的BatchCode
-	result := DB.Raw("SELECT a.batch_code FROM task a\n    " +
-		"JOIN \n" +
-		"(SELECT prev_node_id,proc_inst_id FROM task WHERE id=var_task_id) b \n    " +
-		"ON a.node_id=b.prev_node_id AND a.proc_inst_id=b.proc_inst_id\n    " +
-		"ORDER BY a.id DESC LIMIT 1;").Scan(&batchCode)
-	if result.Error != nil {
-		return Node{}, result.Error
-	}
-
-	//上一个实际执行过程中状态为驳回的任务
-	var prevTask database.Task
-	result = DB.Raw("SELECT id FROM task WHERE batch_code =? AND `status`=2 LIMIT 1", batchCode.BatchCode).Scan(&prevTask)
-	if result.Error != nil {
-		return Node{}, result.Error
-	}
-
-	//没有找到,说明上一个节点中没有做驳回
-	if prevTask.ID == 0 {
-		//直接使用本任务的prev_node_id字段作为上一个节点
-		PrevNodeID = taskInfo.PrevNodeID
-	} else {
-		//若上一个节点是驳回，则用递归逆推获得流程定义中上一个节点
-		Nodes, err := TaskUpstreamNodeList(TaskID)
+		//上一个节点是否做了驳回
+		err, PrevNodeIsReject := taskPrevNodeIsReject(taskInfo)
 		if err != nil {
 			return Node{}, err
 		}
 
-		PrevNodeID = Nodes[0].NodeID
-	}
+		//上一个节点中没有做驳回
+		if PrevNodeIsReject == false {
+			//直接使用本任务的prev_node_id字段作为上一个节点
+			PrevNodeID = taskInfo.PrevNodeID
+		} else {
+			//若上一个节点做了驳回，则用递归逆推获得流程定义中上一个节点
+			Nodes, err := TaskUpstreamNodeList(TaskID)
+			if err != nil {
+				return Node{}, err
+			}
 
-	//不管是否会签，驳回都会返回上一个节点
-	if taskInfo.Status==2{
+			PrevNodeID = Nodes[0].NodeID
+		}
+
+		//不管是否会签，驳回都会返回上一个节点
 		return GetInstanceNode(taskInfo.ProcInstID, PrevNodeID)
 	}
 
-
 	return Node{}, nil
-
 }
 
 //任务节点审批状态 返回节点总任务数量、通过数、驳回数、
@@ -473,7 +490,7 @@ func TaskNodeStatus(TaskID int) (int, int, int, error) {
 	type Result struct {
 		TotalTask     int `gorm:"column:total_task"`
 		TotalPassed   int `gorm:"column:total_passed"`
-		TotalRejected int int `gorm:"column:total_rejected"`
+		TotalRejected int `gorm:"column:total_rejected"`
 	}
 	var result Result
 
@@ -489,4 +506,91 @@ func TaskNodeStatus(TaskID int) (int, int, int, error) {
 	}
 
 	return result.TotalTask, result.TotalPassed, result.TotalRejected, nil
+}
+
+//将任务提交数据(通过、驳回、变量)保存到数据库
+func taskSubmitSave(TaskID int, Comment string, VariableJson string, Status int) error {
+	taskInfo, err := GetTaskInfo(TaskID)
+	if err != nil {
+		return err
+	}
+	//判断节点是否已处理
+	if taskInfo.IsFinished == 1 {
+		return fmt.Errorf("节点ID%d已处理，无需操作", TaskID)
+	}
+
+	//设置实例变量
+	err = InstanceVariablesSave(taskInfo.ProcInstID, VariableJson)
+	if err != nil {
+		return err
+	}
+
+	//------------------------------------开始事务------------------------------------
+	tx := DB.Begin()
+
+	//更新task表记录
+	result := tx.Model(&database.Task{}).Where("id=?", taskInfo.TaskID).
+		Updates(database.Task{Status: Status, IsFinished: 1, FinishedTime: time.Now()})
+	if result.Error != nil {
+		tx.Rollback()
+		return result.Error
+	}
+
+	//1、非会签节点，一人通过即通过，所以要把其他人的任务finish掉
+	//2、不论是否会签，都是一人驳回即驳回，所以需要把同一批次task的isfinish设置为1,让其他人不用再处理
+	if (taskInfo.IsCosigned == 0 && Status == 1) || Status == 2 {
+		result = tx.Model(&database.Task{}).Where("batch_code=?", taskInfo.BatchCode).
+			Updates(database.Task{IsFinished: 1, FinishedTime: time.Now()})
+		if result.Error != nil {
+			tx.Rollback()
+			return result.Error
+		}
+	}
+
+	//生成comment记录
+	if Comment != "" {
+		result = tx.Create(&database.TaskComment{TaskID: taskInfo.TaskID, ProcInstID: taskInfo.ProcInstID, Comment: Comment})
+		if result.Error != nil {
+			tx.Rollback()
+			return result.Error
+		}
+	}
+	//事务提交
+	tx.Commit()
+
+	return nil
+}
+
+//任务的上一个节点是不是做了驳回
+func taskPrevNodeIsReject(TaskInfo Task) (error, bool) {
+	//获得实际执行过程中上一个节点的BatchCode
+	type BatchCode struct {
+		BatchCode string `gorm:"column:batch_code"`
+	}
+	var batchCode BatchCode
+
+	DB.Raw("SELECT a.batch_code\n"+
+		"FROM task a\n "+
+		"JOIN \n"+
+		"(SELECT prev_node_id,proc_inst_id FROM task WHERE id=?) b \n        "+
+		"ON a.node_id=b.prev_node_id AND a.proc_inst_id=b.proc_inst_id\n        "+
+		"ORDER BY a.id DESC LIMIT 1;", TaskInfo.TaskID).Scan(&batchCode)
+
+	if batchCode.BatchCode == "" {
+		return errors.New("此任务不存在上一节点!"), false
+	}
+
+	//获得上一个实际执行过程中状态为驳回的任务
+	var prevTask database.Task
+	result := DB.Raw("SELECT id FROM task WHERE batch_code =? AND `status`=2 LIMIT 1", batchCode.BatchCode).Scan(&prevTask)
+	if result.Error != nil {
+		return result.Error, false
+	}
+
+	//没有找到,说明上一个节点中没有做驳回
+	if prevTask.ID == 0 {
+		return nil, false
+	} else {
+		return nil, true
+	}
 }
