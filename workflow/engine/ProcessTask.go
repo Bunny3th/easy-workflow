@@ -14,6 +14,25 @@ import (
 //思考，一个节点可能分配了N位用户，所以生成节点对应的Task的时候，也需要生成N条Task
 //一个节点的上级节点可能不是一个，节点驳回的时候，就需要知道往哪个节点驳回,所以需要记录上一个节点是谁
 func CreateTask(ProcessInstanceID int, NodeID string, PrevNodeID string, UserIDs []string) ([]int, error) {
+
+	/*考虑以下情况：
+	      |--C
+	A--B--|
+	      |--D
+	假如C驳回到B,B重新提交，D是不是要处理两遍任务？（第1遍是B初次提交后的任务，第2遍是B再次提交后重新生成的任务）
+	所以，在同一实例中，如果某一个节点任务还未finish，这个节点任务就不应该再次被生成
+	*/
+	var task Task
+	result := DB.Raw("SELECT * FROM task "+
+		"WHERE proc_inst_id=? AND node_id=? AND is_finished=0 "+
+		"ORDER BY `task`.`id` LIMIT 1", ProcessInstanceID, NodeID).Scan(&task)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	if task.TaskID != 0 {
+		return nil, nil
+	}
+
 	//获取流程ID
 	ProcID, err := GetProcessIDByInstanceID(ProcessInstanceID)
 	if err != nil {
@@ -44,7 +63,7 @@ func CreateTask(ProcessInstanceID int, NodeID string, PrevNodeID string, UserIDs
 	tx := DB.Begin()
 
 	//Task存入数据库
-	result := tx.Create(&tasks)
+	result = tx.Create(&tasks)
 	if result.Error != nil {
 		tx.Rollback()
 		return nil, result.Error
@@ -69,7 +88,7 @@ func CreateTask(ProcessInstanceID int, NodeID string, PrevNodeID string, UserIDs
 	return TaskIDs, nil
 }
 
-//task做通过、处理时可能会有一些附加功能，放在这里。
+//task处理时可能会有一些附加功能，放在这里。
 //目前只实现DirectlyToWhoRejectedMe，即任务通过时直接返回到上一个驳回我的节点。
 //考虑这种情况：假设A、B、C、D、E 共5个任务节点节点，E节点（老板）使用自由驳回功能，直接驳回到A（员工），嗯就是这么任性
 //传统情况下，A根据领导指示做修改重新提交后，B、C、D几个主管都要再审核一遍，来来回回，不仅效率低，由于增加工作量，各各一肚子怨气
@@ -120,7 +139,7 @@ func TaskPass(TaskID int, Comment string, VariableJson string, DirectlyToWhoReje
 	}
 
 	//完成任务后的后继处理
-	err = ProcessAfterTaskComplete(TaskID)
+	err = ProcessAfterTaskComplete(TaskID, taskOption{DirectlyToWhoRejectedMe: DirectlyToWhoRejectedMe})
 	if err != nil {
 		return err
 	}
@@ -157,7 +176,7 @@ func TaskReject(TaskID int, Comment string, VariableJson string) error {
 	}
 
 	//完成任务后的后继处理
-	err = ProcessAfterTaskComplete(TaskID)
+	err = ProcessAfterTaskComplete(TaskID, taskOption{})
 	if err != nil {
 		return err
 	}
@@ -166,11 +185,26 @@ func TaskReject(TaskID int, Comment string, VariableJson string) error {
 }
 
 //任务完成后的处理
-func ProcessAfterTaskComplete(TaskID int) error {
-	//获取任务执行完毕后下一个节点
-	NextNode, err := TaskNextNode(TaskID)
+func ProcessAfterTaskComplete(TaskID int, option taskOption) error {
+	////获取节点信息
+	taskInfo, err := GetTaskInfo(TaskID)
 	if err != nil {
 		return err
+	}
+
+	//获取任务执行完毕后下一个节点
+	var NextNode Node
+	//如果任务动作是“pass” and 开启 DirectlyToWhoRejectedMe,直接使用任务的PrevNodeID
+	if taskInfo.Status == 1 && option.DirectlyToWhoRejectedMe {
+		NextNode, err = GetInstanceNode(taskInfo.ProcInstID, taskInfo.PrevNodeID)
+		if err != nil {
+			return err
+		}
+	} else { //否则就通过计算得出下一个节点是谁
+		NextNode, err = TaskNextNode(taskInfo.TaskID)
+		if err != nil {
+			return err
+		}
 	}
 
 	//如果需要处理的下一个节点是一个空Node，则说明:当前任务节点还没有处理完,直接退出
@@ -181,12 +215,6 @@ func ProcessAfterTaskComplete(TaskID int) error {
 	//执行到这一步,说明所在节点中所有任务已全部处理完毕，此时：
 	//1、处理节点结束事件
 	//2、开始处理下一个节点
-
-	//获取节点信息
-	taskInfo, err := GetTaskInfo(TaskID)
-	if err != nil {
-		return err
-	}
 
 	//当前task所在节点
 	CurrentNode, err := GetInstanceNode(taskInfo.ProcInstID, taskInfo.NodeID)
@@ -227,6 +255,10 @@ func GetTaskInfo(TaskID int) (Task, error) {
 	if err != nil {
 		return Task{}, err
 	}
+	if task.TaskID == 0 {
+		return Task{}, fmt.Errorf("ID为%d的任务不存在!", TaskID)
+	}
+
 	return task, nil
 }
 
@@ -312,38 +344,42 @@ func TaskUpstreamNodeList(TaskID int) ([]Node, error) {
 func TaskFreeRejectToUpstreamNode(TaskID int, NodeID string, Comment string, VariableJson string) error {
 	//思考:不论是否会签节点，自由驳回功能都可以使用。因为会签节点任意一人驳回就算驳回，其他人已经没有机会再做操作。
 
-	type result struct {
-		Error            string
-		Next_opt_node_id string
-	}
-	var r result
-	_, err := ExecSQL("call sp_task_reject(?,?,?)", &r, TaskID, Comment, VariableJson)
+	taskInfo, err := GetTaskInfo(TaskID)
 	if err != nil {
 		return err
 	}
 
-	if r.Error != "" {
-		return errors.New(r.Error)
+	//判断节点是否已处理
+	if taskInfo.IsFinished == 1 {
+		return fmt.Errorf("节点ID%d已处理，无需操作", TaskID)
 	}
 
-	task, err := GetTaskInfo(TaskID)
+	//获取task所在的node
+	taskNode, err := GetInstanceNode(taskInfo.ProcInstID, taskInfo.NodeID)
 	if err != nil {
 		return err
 	}
+	//起始节点不能做驳回
+	if taskNode.NodeType == RootNode {
+		return errors.New("起始节点无法驳回!")
+	}
+
+	//保存数据
+	taskSubmitSave(TaskID, Comment, VariableJson, 2)
 
 	//当前task所在节点
-	CurrentNode, err := GetInstanceNode(task.ProcInstID, task.NodeID)
+	CurrentNode, err := GetInstanceNode(taskInfo.ProcInstID, taskInfo.NodeID)
 	if err != nil {
 		return err
 	}
 
 	//reject to 节点
-	RejectToNode, err := GetInstanceNode(task.ProcInstID, NodeID)
+	RejectToNode, err := GetInstanceNode(taskInfo.ProcInstID, NodeID)
 	if err != nil {
 		return err
 	}
 
-	err = ProcessNode(task.ProcInstID, &RejectToNode, CurrentNode)
+	err = ProcessNode(taskInfo.ProcInstID, &RejectToNode, CurrentNode)
 	if err != nil {
 		return err
 	}
@@ -593,4 +629,47 @@ func taskPrevNodeIsReject(TaskInfo Task) (error, bool) {
 	} else {
 		return nil, true
 	}
+}
+
+//此方法方便前端判断，某一个任务可以执行哪些操作
+//目前为止，除了传统的通过驳回，本项目还增加了"自由驳回"与"直接提交到上一个驳回我的节点"
+//而"直接提交到上一个驳回我的节点"：
+//1、在会签节点无法使用 2、在此任务的上一节点并未做驳回时也无法使用
+//对于前端而言，实现无法提前知道这些信息。
+//难道让用户一个一个点按钮试错？此方法目的是解决这个困扰
+func WhatCanIDo(TaskID int) (TaskAction, error) {
+	var act TaskAction
+	act = TaskAction{CanPass: true, CanReject: true, CanFreeRejectToUpstreamNode: true, CanDirectlyToWhoRejectedMe: true} //初始化
+
+	taskInfo, err := GetTaskInfo(TaskID)
+	if err != nil {
+		return TaskAction{}, err
+	}
+
+	node, err := GetInstanceNode(taskInfo.ProcInstID, taskInfo.NodeID)
+	if err != nil {
+		return TaskAction{}, nil
+	}
+
+	//起始节点不能做驳回动作
+	if node.NodeType == RootNode {
+		act.CanReject = false
+		act.CanFreeRejectToUpstreamNode = false
+	}
+
+	//会签节点不能使用DirectlyToWhoRejectedMe功能
+	if taskInfo.IsCosigned == 1 {
+		act.CanDirectlyToWhoRejectedMe = false
+	}
+
+	//此任务的上一节点并未做驳回,无法使用DirectlyToWhoRejectedMe功能
+	err, PrevNodeIsReject := taskPrevNodeIsReject(taskInfo)
+	if err != nil {
+		return TaskAction{}, err
+	}
+	if PrevNodeIsReject == false {
+		act.CanDirectlyToWhoRejectedMe = false
+	}
+
+	return act, nil
 }

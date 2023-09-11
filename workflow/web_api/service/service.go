@@ -55,7 +55,7 @@ swagger注解描述 https://github.com/swaggo/swag/blob/master/README_zh-CN.md
 // @Param        Source  formData string  true  "来源" example(办公系统)
 // @Success      200  {object}  int 流程ID
 // @Failure      400  {object}  string 报错信息
-// @Router       /process/def/save [post]
+// @Router       /def/save [post]
 func ProcDef_Save(c *gin.Context) {
 	ProcessName := c.PostForm("ProcessName")
 	Resource := c.PostForm("Resource")
@@ -76,7 +76,7 @@ func ProcDef_Save(c *gin.Context) {
 // @Param        source  query string  true  "来源" example(办公系统)
 // @Success      200  {object}  []model.ProcessDefine 流程定义列表
 // @Failure      400  {object}  string 报错信息
-// @Router       /process/def/list [get]
+// @Router       /def/list [get]
 func ProcDef_ListBySource(c *gin.Context) {
 	source := c.Query("source")
 	if procDef, err := GetProcessList(source); err == nil {
@@ -93,11 +93,14 @@ func ProcDef_ListBySource(c *gin.Context) {
 // @Param        id  query string  true  "流程ID" example(1)
 // @Success      200  {object}  []model.Node "Node数组"
 // @Failure      400  {object}  string 报错信息
-// @Router       /process/def/get [get]
+// @Router       /def/get [get]
 func ProcDef_GetProcDefByID(c *gin.Context) {
-	id := c.Query("id")
-	id_int, _ := strconv.Atoi(id)
-	if nodes, err := GetProcessDefine(id_int); err == nil {
+	id, err := strconv.Atoi(c.Query("id"))
+	if err != nil {
+		c.AbortWithStatusJSON(400, err.Error())
+	}
+
+	if nodes, err := GetProcessDefine(id); err == nil {
 		c.JSON(200, nodes)
 	} else {
 		c.JSON(400, err.Error())
@@ -114,9 +117,12 @@ func ProcDef_GetProcDefByID(c *gin.Context) {
 // @Param        VariablesJson  formData string  false  "变量(Json)" example([{"Key":"starter","Value":"U0001"}])
 // @Success      200  {object}  int 流程实例ID
 // @Failure      400  {object}  string 报错信息
-// @Router       /process/inst/start [post]
+// @Router       /inst/start [post]
 func ProcInst_Start(c *gin.Context) {
-	ProcessID, _ := strconv.Atoi(c.PostForm("ProcessID"))
+	ProcessID, err := strconv.Atoi(c.PostForm("ProcessID"))
+	if err != nil {
+		c.AbortWithStatusJSON(400, err.Error())
+	}
 	BusinessID := c.PostForm("BusinessID")
 	Comment := c.PostForm("Comment")
 	VariablesJson := c.PostForm("VariablesJson")
@@ -136,15 +142,21 @@ func ProcInst_Start(c *gin.Context) {
 // @Param        Force  formData bool  true  "是否强制撤销" example("false")
 // @Success      200  {object}  string "ok"
 // @Failure      400  {object}  string 报错信息
-// @Router       /process/inst/revoke [post]
+// @Router       /inst/revoke [post]
 func ProcInst_Revoke(c *gin.Context) {
-	InstanceID, _ := strconv.Atoi(c.PostForm("InstanceID"))
-	Force,_:=strconv.ParseBool(c.PostForm("Force"))
+	InstanceID, err := strconv.Atoi(c.PostForm("InstanceID"))
+	if err != nil {
+		c.AbortWithStatusJSON(400, err.Error())
+	}
+	Force, err := strconv.ParseBool(c.PostForm("Force"))
+	if err != nil {
+		c.AbortWithStatusJSON(400, err.Error())
+	}
 
-	if err:=InstanceRevoke(InstanceID,Force);err==nil{
-		c.JSON(200,"ok")
-	}else{
-		c.JSON(400,err.Error())
+	if err := InstanceRevoke(InstanceID, Force); err == nil {
+		c.JSON(200, "ok")
+	} else {
+		c.JSON(400, err.Error())
 	}
 }
 
@@ -155,13 +167,16 @@ func ProcInst_Revoke(c *gin.Context) {
 // @Param        instid  query int  true  "流程实例ID" example(1)
 // @Success      200  {object}  []model.Task "任务列表"
 // @Failure      400  {object}  string 报错信息
-// @Router       /process/inst/task_history [get]
+// @Router       /inst/task_history [get]
 func ProcInst_TaskHistory(c *gin.Context) {
-	InstanceID, _ := strconv.Atoi(c.Query("instid"))
-	if tasklist,err:=GetInstanceTaskHistory(InstanceID);err==nil{
-		c.JSON(200,tasklist)
-	}else{
-		c.JSON(400,err.Error())
+	InstanceID, err := strconv.Atoi(c.Query("instid"))
+	if err != nil {
+		c.AbortWithStatusJSON(400, err.Error())
+	}
+	if tasklist, err := GetInstanceTaskHistory(InstanceID); err == nil {
+		c.JSON(200, tasklist)
+	} else {
+		c.JSON(400, err.Error())
 	}
 }
 
@@ -174,13 +189,16 @@ func ProcInst_TaskHistory(c *gin.Context) {
 // @Param        VariablesJson  formData string  false  "变量(Json)" example("{"User":"001"}")
 // @Success      200  {object}  string "ok"
 // @Failure      400  {object}  string 报错信息
-// @Router       /process/task/pass [post]
+// @Router       /task/pass [post]
 func Task_Pass(c *gin.Context) {
-	TaskID, _ := strconv.Atoi(c.PostForm("TaskID"))
+	TaskID, err := strconv.Atoi(c.PostForm("TaskID"))
+	if err != nil {
+		c.AbortWithStatusJSON(400, err.Error())
+	}
 	Comment := c.PostForm("Comment")
 	VariableJson := c.PostForm("VariableJson")
 
-	if err := TaskPass(TaskID, Comment, VariableJson,false); err == nil {
+	if err := TaskPass(TaskID, Comment, VariableJson, false); err == nil {
 		c.JSON(200, "ok")
 	} else {
 		c.JSON(400, err.Error())
@@ -196,19 +214,21 @@ func Task_Pass(c *gin.Context) {
 // @Param        VariablesJson  formData string  false  "变量(Json)" example("{"User":"001"}")
 // @Success      200  {object}  string "ok"
 // @Failure      400  {object}  string 报错信息
-// @Router       /process/task/pass/directly [post]
+// @Router       /task/pass/directly [post]
 func Task_Pass_DirectlyToWhoRejectedMe(c *gin.Context) {
-	TaskID, _ := strconv.Atoi(c.PostForm("TaskID"))
+	TaskID, err := strconv.Atoi(c.PostForm("TaskID"))
+	if err != nil {
+		c.AbortWithStatusJSON(400, err.Error())
+	}
 	Comment := c.PostForm("Comment")
 	VariableJson := c.PostForm("VariableJson")
 
-	if err := TaskPass(TaskID, Comment, VariableJson,true); err == nil {
+	if err := TaskPass(TaskID, Comment, VariableJson, true); err == nil {
 		c.JSON(200, "ok")
 	} else {
 		c.JSON(400, err.Error())
 	}
 }
-
 
 // @Summary      任务驳回
 // @Description
@@ -219,9 +239,12 @@ func Task_Pass_DirectlyToWhoRejectedMe(c *gin.Context) {
 // @Param        VariablesJson  formData string  false  "变量(Json)" example("{"User":"001"}")
 // @Success      200  {object}  string "ok"
 // @Failure      400  {object}  string 报错信息
-// @Router       /process/task/reject [post]
+// @Router       /task/reject [post]
 func Task_Reject(c *gin.Context) {
-	TaskID, _ := strconv.Atoi(c.PostForm("TaskID"))
+	TaskID, err := strconv.Atoi(c.PostForm("TaskID"))
+	if err != nil {
+		c.AbortWithStatusJSON(400, err.Error())
+	}
 	Comment := c.PostForm("Comment")
 	VariableJson := c.PostForm("VariableJson")
 
@@ -239,7 +262,7 @@ func Task_Reject(c *gin.Context) {
 // @Param        userid  query string  true  "用户ID" example("U001")
 // @Success      200  {object}  []model.Task 任务数组
 // @Failure      400  {object}  string 报错信息
-// @Router       /process/task/todo [get]
+// @Router       /task/todo [get]
 func Task_ToDoList(c *gin.Context) {
 	UserID := c.Query("userid")
 	if tasks, err := GetTaskToDoList(UserID); err == nil {
@@ -256,7 +279,7 @@ func Task_ToDoList(c *gin.Context) {
 // @Param        userid  query string  true  "用户ID" example("U001")
 // @Success      200  {object}  []model.Task 任务数组
 // @Failure      400  {object}  string 报错信息
-// @Router       /process/task/finished [get]
+// @Router       /task/finished [get]
 func Task_FinishedList(c *gin.Context) {
 	UserID := c.Query("userid")
 	if tasks, err := GetTaskFinishedList(UserID); err == nil {
@@ -273,9 +296,12 @@ func Task_FinishedList(c *gin.Context) {
 // @Param        taskid  query int  true  "任务ID" example("8")
 // @Success      200  {object}  []model.Node 节点任务数组
 // @Failure      400  {object}  string 报错信息
-// @Router       /process/task/upstream [get]
+// @Router       /task/upstream [get]
 func Task_UpstreamNodeList(c *gin.Context) {
-	TaskID, _ := strconv.Atoi(c.Query("taskid"))
+	TaskID, err := strconv.Atoi(c.Query("taskid"))
+	if err != nil {
+		c.AbortWithStatusJSON(400, err.Error())
+	}
 
 	if nodes, err := TaskUpstreamNodeList(TaskID); err == nil {
 		c.JSON(200, nodes)
@@ -294,15 +320,39 @@ func Task_UpstreamNodeList(c *gin.Context) {
 // @Param        RejectToNodeID  formData string  false  "驳回到哪个节点" example("流程开始节点")
 // @Success      200  {object}  string "ok"
 // @Failure      400  {object}  string 报错信息
-// @Router       /process/task/reject/free [post]
+// @Router       /task/reject/free [post]
 func Task_FreeRejectToUpstreamNode(c *gin.Context) {
-	TaskID, _ := strconv.Atoi(c.PostForm("TaskID"))
+	TaskID, err := strconv.Atoi(c.PostForm("TaskID"))
+	if err != nil {
+		c.AbortWithStatusJSON(400, err.Error())
+	}
+
 	Comment := c.PostForm("Comment")
 	VariableJson := c.PostForm("VariableJson")
-	RejectToNodeID:=c.PostForm("RejectToNodeID")
+	RejectToNodeID := c.PostForm("RejectToNodeID")
 
-	if err:=TaskFreeRejectToUpstreamNode(TaskID,RejectToNodeID,Comment,VariableJson);err == nil {
+	if err := TaskFreeRejectToUpstreamNode(TaskID, RejectToNodeID, Comment, VariableJson); err == nil {
 		c.JSON(200, "ok")
+	} else {
+		c.JSON(400, err.Error())
+	}
+}
+
+// @Summary      当前任务可以执行哪些操作
+// @Description  前端无法提前知道当前任务可以做哪些操作，此方法目的是解决这个困扰
+// @Tags         任务
+// @Produce      json
+// @Param        TaskID  query int  true  "任务ID" example(1)
+// @Success      200  {object}  model.TaskAction "可执行任务"
+// @Failure      400  {object}  string 报错信息
+// @Router       /task/action [get]
+func Task_WhatCanIDo(c *gin.Context) {
+	TaskID, err := strconv.Atoi(c.Query("taskid"))
+	if err != nil {
+		c.AbortWithStatusJSON(400, err.Error())
+	}
+	if action, err := WhatCanIDo(TaskID); err == nil {
+		c.JSON(200, action)
 	} else {
 		c.JSON(400, err.Error())
 	}

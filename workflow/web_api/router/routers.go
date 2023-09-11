@@ -8,7 +8,7 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
-func NewRouter(engine *gin.Engine, ApiBaseUrl string, ShowSwaggerDoc bool,SwaggerUrl string) *gin.Engine {
+func NewRouter(engine *gin.Engine, ApiBaseUrl string, ShowSwaggerDoc bool, SwaggerUrl string) *gin.Engine {
 	//注意，由于我们执行swag init的时候指定了InstanceName，所以这里也必须传入InstanceName
 	if ShowSwaggerDoc {
 		engine.GET(SwaggerUrl, ginSwagger.WrapHandler(swaggerFiles.Handler, func(c *ginSwagger.Config) {
@@ -34,6 +34,7 @@ func NewRouter(engine *gin.Engine, ApiBaseUrl string, ShowSwaggerDoc bool,Swagge
 	router.GET("/task/todo", Task_ToDoList)
 	router.GET("/task/finished", Task_FinishedList)
 	router.GET("/task/upstream", Task_UpstreamNodeList)
+	router.GET("/task/action", Task_WhatCanIDo)
 
 	return engine
 }
