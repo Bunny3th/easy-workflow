@@ -131,10 +131,7 @@ definitions:
         description: 0:任意一人通过即可 1:会签
         type: integer
       isFinished:
-        description: 0:任务未处理 1:处理完成
-        type: integer
-      isPassed:
-        description: 任务是否通过 0:驳回 1:通过
+        description: 0:任务未完成 1:处理完成
         type: integer
       nodeID:
         description: 节点ID
@@ -154,6 +151,9 @@ definitions:
       procName:
         description: 流程名称
         type: string
+      status:
+        description: 任务状态:0:初始 1:通过 2:驳回
+        type: integer
       taskID:
         description: 任务ID
         type: integer
@@ -161,10 +161,25 @@ definitions:
         description: 分配用户ID
         type: string
     type: object
+  model.TaskAction:
+    properties:
+      canDirectlyToWhoRejectedMe:
+        description: 任务可以执行“直接提交到上一个驳回我的节点”
+        type: boolean
+      canFreeRejectToUpstreamNode:
+        description: 任务可以执行“自由驳回”
+        type: boolean
+      canPass:
+        description: 任务可以执行“通过”
+        type: boolean
+      canReject:
+        description: 任务可以执行“驳回”
+        type: boolean
+    type: object
 info:
   contact: {}
 paths:
-  /process/def/get:
+  /def/get:
     get:
       description: 返回的是Node数组，流程是由N个Node组成的
       parameters:
@@ -190,7 +205,7 @@ paths:
       summary: 获取流程定义
       tags:
       - 流程定义
-  /process/def/list:
+  /def/list:
     get:
       description: 引擎可能被多个系统、组件等使用，source表示从哪个来源创建的流程
       parameters:
@@ -216,7 +231,7 @@ paths:
       summary: 获取特定source下所有流程
       tags:
       - 流程定义
-  /process/def/save:
+  /def/save:
     post:
       parameters:
       - description: 流程名称
@@ -257,7 +272,7 @@ paths:
       summary: 流程生成/升级
       tags:
       - 流程定义
-  /process/inst/revoke:
+  /inst/revoke:
     post:
       description: 注意，Force 是否强制撤销，若为false,则只有流程回到发起人这里才能撤销
       parameters:
@@ -286,7 +301,7 @@ paths:
       summary: 撤销流程
       tags:
       - 流程实例
-  /process/inst/start:
+  /inst/start:
     post:
       description: 注意，VariablesJson格式是key-value对象集合:[{"Key":"starter","Value":"U0001"}]
       parameters:
@@ -326,7 +341,7 @@ paths:
       summary: 开始流程
       tags:
       - 流程实例
-  /process/inst/task_history:
+  /inst/task_history:
     get:
       parameters:
       - description: 流程实例ID
@@ -351,7 +366,31 @@ paths:
       summary: 流程实例中任务执行记录
       tags:
       - 流程实例
-  /process/task/finished:
+  /task/action:
+    get:
+      description: 前端无法提前知道当前任务可以做哪些操作，此方法目的是解决这个困扰
+      parameters:
+      - description: 任务ID
+        example: 1
+        in: query
+        name: TaskID
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 可执行任务
+          schema:
+            $ref: '#/definitions/model.TaskAction'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+      summary: 当前任务可以执行哪些操作
+      tags:
+      - 任务
+  /task/finished:
     get:
       description: 返回的是任务数组
       parameters:
@@ -377,7 +416,7 @@ paths:
       summary: 获取已办任务
       tags:
       - 任务
-  /process/task/pass:
+  /task/pass:
     post:
       description: 任务通过后根据流程定义，进入下一个节点进行处理
       parameters:
@@ -411,7 +450,7 @@ paths:
       summary: 任务通过
       tags:
       - 任务
-  /process/task/pass/directly:
+  /task/pass/directly:
     post:
       description: 此功能只有在非会签节点时才能使用
       parameters:
@@ -445,7 +484,7 @@ paths:
       summary: 任务通过后流程直接返回到上一个驳回我的节点
       tags:
       - 任务
-  /process/task/reject:
+  /task/reject:
     post:
       parameters:
       - description: 任务ID
@@ -478,7 +517,7 @@ paths:
       summary: 任务驳回
       tags:
       - 任务
-  /process/task/reject/free:
+  /task/reject/free:
     post:
       description: 驳回到上游任意一个节点
       parameters:
@@ -517,7 +556,7 @@ paths:
       summary: 自由任务驳回
       tags:
       - 任务
-  /process/task/todo:
+  /task/todo:
     get:
       description: 返回的是任务数组
       parameters:
@@ -543,7 +582,7 @@ paths:
       summary: 获取待办任务
       tags:
       - 任务
-  /process/task/upstream:
+  /task/upstream:
     get:
       description: 此功能为自由驳回使用
       parameters:

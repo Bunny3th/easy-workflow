@@ -16,7 +16,7 @@ const docTemplateeasyworkflow = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/process/def/get": {
+        "/def/get": {
             "get": {
                 "description": "返回的是Node数组，流程是由N个Node组成的",
                 "produces": [
@@ -55,7 +55,7 @@ const docTemplateeasyworkflow = `{
                 }
             }
         },
-        "/process/def/list": {
+        "/def/list": {
             "get": {
                 "description": "引擎可能被多个系统、组件等使用，source表示从哪个来源创建的流程",
                 "produces": [
@@ -94,7 +94,7 @@ const docTemplateeasyworkflow = `{
                 }
             }
         },
-        "/process/def/save": {
+        "/def/save": {
             "post": {
                 "produces": [
                     "application/json"
@@ -153,7 +153,7 @@ const docTemplateeasyworkflow = `{
                 }
             }
         },
-        "/process/inst/revoke": {
+        "/inst/revoke": {
             "post": {
                 "description": "注意，Force 是否强制撤销，若为false,则只有流程回到发起人这里才能撤销",
                 "produces": [
@@ -196,7 +196,7 @@ const docTemplateeasyworkflow = `{
                 }
             }
         },
-        "/process/inst/start": {
+        "/inst/start": {
             "post": {
                 "description": "注意，VariablesJson格式是key-value对象集合:[{\"Key\":\"starter\",\"Value\":\"U0001\"}]",
                 "produces": [
@@ -254,7 +254,7 @@ const docTemplateeasyworkflow = `{
                 }
             }
         },
-        "/process/inst/task_history": {
+        "/inst/task_history": {
             "get": {
                 "produces": [
                     "application/json"
@@ -292,7 +292,43 @@ const docTemplateeasyworkflow = `{
                 }
             }
         },
-        "/process/task/finished": {
+        "/task/action": {
+            "get": {
+                "description": "前端无法提前知道当前任务可以做哪些操作，此方法目的是解决这个困扰",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "任务"
+                ],
+                "summary": "当前任务可以执行哪些操作",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "example": 1,
+                        "description": "任务ID",
+                        "name": "TaskID",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "可执行任务",
+                        "schema": {
+                            "$ref": "#/definitions/model.TaskAction"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/task/finished": {
             "get": {
                 "description": "返回的是任务数组",
                 "produces": [
@@ -331,7 +367,7 @@ const docTemplateeasyworkflow = `{
                 }
             }
         },
-        "/process/task/pass": {
+        "/task/pass": {
             "post": {
                 "description": "任务通过后根据流程定义，进入下一个节点进行处理",
                 "produces": [
@@ -381,7 +417,7 @@ const docTemplateeasyworkflow = `{
                 }
             }
         },
-        "/process/task/pass/directly": {
+        "/task/pass/directly": {
             "post": {
                 "description": "此功能只有在非会签节点时才能使用",
                 "produces": [
@@ -431,7 +467,7 @@ const docTemplateeasyworkflow = `{
                 }
             }
         },
-        "/process/task/reject": {
+        "/task/reject": {
             "post": {
                 "produces": [
                     "application/json"
@@ -480,7 +516,7 @@ const docTemplateeasyworkflow = `{
                 }
             }
         },
-        "/process/task/reject/free": {
+        "/task/reject/free": {
             "post": {
                 "description": "驳回到上游任意一个节点",
                 "produces": [
@@ -537,7 +573,7 @@ const docTemplateeasyworkflow = `{
                 }
             }
         },
-        "/process/task/todo": {
+        "/task/todo": {
             "get": {
                 "description": "返回的是任务数组",
                 "produces": [
@@ -576,7 +612,7 @@ const docTemplateeasyworkflow = `{
                 }
             }
         },
-        "/process/task/upstream": {
+        "/task/upstream": {
             "get": {
                 "description": "此功能为自由驳回使用",
                 "produces": [
@@ -802,11 +838,7 @@ const docTemplateeasyworkflow = `{
                     "type": "integer"
                 },
                 "isFinished": {
-                    "description": "0:任务未处理 1:处理完成",
-                    "type": "integer"
-                },
-                "isPassed": {
-                    "description": "任务是否通过 0:驳回 1:通过",
+                    "description": "0:任务未完成 1:处理完成",
                     "type": "integer"
                 },
                 "nodeID": {
@@ -833,6 +865,10 @@ const docTemplateeasyworkflow = `{
                     "description": "流程名称",
                     "type": "string"
                 },
+                "status": {
+                    "description": "任务状态:0:初始 1:通过 2:驳回",
+                    "type": "integer"
+                },
                 "taskID": {
                     "description": "任务ID",
                     "type": "integer"
@@ -840,6 +876,27 @@ const docTemplateeasyworkflow = `{
                 "userID": {
                     "description": "分配用户ID",
                     "type": "string"
+                }
+            }
+        },
+        "model.TaskAction": {
+            "type": "object",
+            "properties": {
+                "canDirectlyToWhoRejectedMe": {
+                    "description": "任务可以执行“直接提交到上一个驳回我的节点”",
+                    "type": "boolean"
+                },
+                "canFreeRejectToUpstreamNode": {
+                    "description": "任务可以执行“自由驳回”",
+                    "type": "boolean"
+                },
+                "canPass": {
+                    "description": "任务可以执行“通过”",
+                    "type": "boolean"
+                },
+                "canReject": {
+                    "description": "任务可以执行“驳回”",
+                    "type": "boolean"
                 }
             }
         }

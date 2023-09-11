@@ -121,6 +121,11 @@ func TaskPass(TaskID int, Comment string, VariableJson string, DirectlyToWhoReje
 			return errors.New("会签节点无法使用【DirectlyToWhoRejectedMe】功能!")
 		}
 
+		//任务没有上级节点
+		if taskInfo.PrevNodeID==""{
+			return errors.New("此任务不存在上级节点,无法使用【DirectlyToWhoRejectedMe】功能!!")
+		}
+
 		//判断任务的上一个节点是不是做了驳回
 		err, PrevNodeIsReject := taskPrevNodeIsReject(taskInfo)
 		if err != nil {
@@ -355,22 +360,13 @@ func TaskFreeRejectToUpstreamNode(TaskID int, NodeID string, Comment string, Var
 	}
 
 	//获取task所在的node
-	taskNode, err := GetInstanceNode(taskInfo.ProcInstID, taskInfo.NodeID)
+	CurrentNode, err := GetInstanceNode(taskInfo.ProcInstID, taskInfo.NodeID)
 	if err != nil {
 		return err
 	}
 	//起始节点不能做驳回
-	if taskNode.NodeType == RootNode {
+	if CurrentNode.NodeType == RootNode {
 		return errors.New("起始节点无法驳回!")
-	}
-
-	//保存数据
-	taskSubmitSave(TaskID, Comment, VariableJson, 2)
-
-	//当前task所在节点
-	CurrentNode, err := GetInstanceNode(taskInfo.ProcInstID, taskInfo.NodeID)
-	if err != nil {
-		return err
 	}
 
 	//reject to 节点
@@ -378,6 +374,9 @@ func TaskFreeRejectToUpstreamNode(TaskID int, NodeID string, Comment string, Var
 	if err != nil {
 		return err
 	}
+
+	//保存数据
+	taskSubmitSave(TaskID, Comment, VariableJson, 2)
 
 	err = ProcessNode(taskInfo.ProcInstID, &RejectToNode, CurrentNode)
 	if err != nil {
@@ -605,20 +604,19 @@ func taskPrevNodeIsReject(TaskInfo Task) (error, bool) {
 	}
 	var batchCode BatchCode
 
-	DB.Raw("SELECT a.batch_code\n"+
+	result:=DB.Raw("SELECT a.batch_code\n"+
 		"FROM task a\n "+
 		"JOIN \n"+
 		"(SELECT prev_node_id,proc_inst_id FROM task WHERE id=?) b \n        "+
 		"ON a.node_id=b.prev_node_id AND a.proc_inst_id=b.proc_inst_id\n        "+
 		"ORDER BY a.id DESC LIMIT 1;", TaskInfo.TaskID).Scan(&batchCode)
-
-	if batchCode.BatchCode == "" {
-		return errors.New("此任务不存在上一节点!"), false
+	if result.Error != nil {
+		return result.Error, false
 	}
 
 	//获得上一个实际执行过程中状态为驳回的任务
 	var prevTask database.Task
-	result := DB.Raw("SELECT id FROM task WHERE batch_code =? AND `status`=2 LIMIT 1", batchCode.BatchCode).Scan(&prevTask)
+	result = DB.Raw("SELECT id FROM task WHERE batch_code =? AND `status`=2 LIMIT 1", batchCode.BatchCode).Scan(&prevTask)
 	if result.Error != nil {
 		return result.Error, false
 	}
