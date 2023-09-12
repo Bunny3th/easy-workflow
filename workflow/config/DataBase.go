@@ -15,6 +15,6 @@ type DataBaselog struct {
 }
 
 var DBConnect = DataBaseConnect{MaxIdleConns: 10, MaxOpenConns: 100, ConnMaxLifetime: 3600}
-var DBlog = DataBaselog{SlowThreshold: 1, LogLevel: 4, IgnoreRecordNotFoundError: true, Colorful: true}
+var DBlog = DataBaselog{SlowThreshold: 1, LogLevel: 3, IgnoreRecordNotFoundError: true, Colorful: true}
 
 

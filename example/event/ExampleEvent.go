@@ -1,8 +1,10 @@
 package event
 
 import (
+	"github.com/Bunny3th/easy-workflow/workflow/dao"
 	. "github.com/Bunny3th/easy-workflow/workflow/engine"
 	. "github.com/Bunny3th/easy-workflow/workflow/model"
+	"github.com/Bunny3th/easy-workflow/workflow/database"
 	"log"
 )
 
@@ -20,6 +22,7 @@ func init() {
 //示例事件
 type MyEvent struct{}
 
+//节点结束事件
 func (e *MyEvent) MyEvent_End(ProcessInstanceID int, CurrentNode *Node, PrevNode Node) error {
 	//可以做一些处理，比如通知流程开始人，节点到了哪个步骤
 	processName, err := GetProcessNameByInstanceID(ProcessInstanceID)
@@ -30,6 +33,7 @@ func (e *MyEvent) MyEvent_End(ProcessInstanceID int, CurrentNode *Node, PrevNode
 	return nil
 }
 
+//通知
 func (e *MyEvent) MyEvent_Notify(ProcessInstanceID int, CurrentNode *Node, PrevNode Node) error {
 	processName, err := GetProcessNameByInstanceID(ProcessInstanceID)
 	if err != nil {
@@ -65,5 +69,33 @@ func (e *MyEvent) MyEvent_ResolveRoles(ProcessInstanceID int, CurrentNode *Node,
 			CurrentNode.UserIDs = append(CurrentNode.UserIDs, users...)
 		}
 	}
+	return nil
+}
+
+//任务事件
+//在示例流程中，"副总审批"是一个会签节点，需要3个副总全部通过，节点才算通过
+//现在通过任务事件改变会签通过人数，设为只要2人通过，即算通过
+func (e *MyEvent) MyEvent_TaskForceNodePass(TaskID int, CurrentNode *Node, PrevNode Node) error {
+	taskInfo, err := GetTaskInfo(TaskID)
+	if err != nil {
+		return err
+	}
+
+	processName, err := GetProcessNameByInstanceID(taskInfo.ProcInstID)
+	if err != nil {
+		return err
+	}
+	log.Printf("--------流程[%s]节点[%s],开始任务ID[%d]结束事件--------", processName, CurrentNode.NodeName, taskInfo.TaskID)
+	_, PassNum, _, err := TaskNodeStatus(taskInfo.TaskID)
+	if err != nil {
+		return err
+	}
+	//如果通过数>=2，则直接把节点中所有任务都置为通过and结束，这样节点就强制被完成
+	if PassNum >= 2 {
+		dao.DB.Model(&database.Task{}).
+			Where("proc_inst_id=? AND node_id=? AND batch_code=?", taskInfo.ProcInstID, taskInfo.NodeID, taskInfo.BatchCode).
+			Updates(database.Task{IsFinished: 1,Status: 1})
+	}
+
 	return nil
 }

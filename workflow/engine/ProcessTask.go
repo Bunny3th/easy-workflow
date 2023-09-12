@@ -144,7 +144,7 @@ func TaskPass(TaskID int, Comment string, VariableJson string, DirectlyToWhoReje
 	}
 
 	//完成任务后的后继处理
-	err = ProcessAfterTaskComplete(TaskID, taskOption{DirectlyToWhoRejectedMe: DirectlyToWhoRejectedMe})
+	err = ProcessAfterTaskFinished(TaskID, taskOption{DirectlyToWhoRejectedMe: DirectlyToWhoRejectedMe})
 	if err != nil {
 		return err
 	}
@@ -181,7 +181,7 @@ func TaskReject(TaskID int, Comment string, VariableJson string) error {
 	}
 
 	//完成任务后的后继处理
-	err = ProcessAfterTaskComplete(TaskID, taskOption{})
+	err = ProcessAfterTaskFinished(TaskID, taskOption{})
 	if err != nil {
 		return err
 	}
@@ -190,9 +190,32 @@ func TaskReject(TaskID int, Comment string, VariableJson string) error {
 }
 
 //任务完成后的处理
-func ProcessAfterTaskComplete(TaskID int, option taskOption) error {
+func ProcessAfterTaskFinished(TaskID int, option taskOption) error {
 	////获取节点信息
 	taskInfo, err := GetTaskInfo(TaskID)
+	if err != nil {
+		return err
+	}
+
+	//当前task所在节点
+	CurrentNode, err := GetInstanceNode(taskInfo.ProcInstID, taskInfo.NodeID)
+	if err != nil {
+		return err
+	}
+
+	//当前task上一个节点.这里要注意，如果当前节点的PrevNodeID=""，则需要制造一个空节点
+	var PrevNode Node
+	if taskInfo.PrevNodeID== "" {
+		PrevNode = Node{}
+	} else {
+		PrevNode, err = GetInstanceNode(taskInfo.ProcInstID, taskInfo.PrevNodeID)
+		if err != nil {
+			return err
+		}
+	}
+
+	//--------------------------这里处理[任务结束]事件--------------------------
+	err = RunEvents(CurrentNode.TaskFinishEvents, taskInfo.TaskID, &CurrentNode, PrevNode)
 	if err != nil {
 		return err
 	}
@@ -221,25 +244,8 @@ func ProcessAfterTaskComplete(TaskID int, option taskOption) error {
 	//1、处理节点结束事件
 	//2、开始处理下一个节点
 
-	//当前task所在节点
-	CurrentNode, err := GetInstanceNode(taskInfo.ProcInstID, taskInfo.NodeID)
-	if err != nil {
-		return err
-	}
-
-	//当前task上一个节点.这里要注意，如果当前节点是开始节点，则上一个节点是空节点
-	var PrevNode Node
-	if CurrentNode.NodeType == RootNode {
-		PrevNode = Node{}
-	} else {
-		PrevNode, err = GetInstanceNode(taskInfo.ProcInstID, taskInfo.PrevNodeID)
-		if err != nil {
-			return err
-		}
-	}
-
 	//--------------------------这里处理节点结束事件--------------------------
-	err = RunEvents(CurrentNode.EndEvents, taskInfo.ProcInstID, &CurrentNode, PrevNode)
+	err = RunEvents(CurrentNode.NodeEndEvents, taskInfo.ProcInstID, &CurrentNode, PrevNode)
 	if err != nil {
 		return err
 	}

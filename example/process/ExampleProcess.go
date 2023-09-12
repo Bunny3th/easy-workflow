@@ -14,7 +14,7 @@ func CreateProcessJson() (string, error) {
 	//建议所有的初始节点User都定义为变量"$starter,方便之后的开发管理
 	Node1 := Node{NodeID: "Start", NodeName: "请假",
 		NodeType: 0, UserIDs: []string{"$starter"},
-		EndEvents: []string{"MyEvent_End"},
+		NodeEndEvents: []string{"MyEvent_End"},
 	}
 
 	//网关,根据请假天数做判断:
@@ -33,8 +33,8 @@ func CreateProcessJson() (string, error) {
 	Node3 := Node{NodeID: "Manager", NodeName: "主管审批",
 		NodeType: 1, Roles: []string{"主管"},
 		PrevNodeIDs: []string{"GW-Day"},
-		StartEvents: []string{"MyEvent_ResolveRoles", "MyEvent_Notify"},
-		EndEvents:   []string{"MyEvent_End"},
+		NodeStartEvents: []string{"MyEvent_ResolveRoles", "MyEvent_Notify"},
+		NodeEndEvents:   []string{"MyEvent_End"},
 	}
 
 	//网关,要求“主管审批节点”通过后，并行进入到“人事审批”以及“副总审批”节点
@@ -48,18 +48,20 @@ func CreateProcessJson() (string, error) {
 	Node5 := Node{NodeID: "HR", NodeName: "人事审批",
 		NodeType: 1, Roles: []string{"人事经理"},
 		PrevNodeIDs: []string{"GW-Parallel"},
-		StartEvents: []string{"MyEvent_ResolveRoles", "MyEvent_Notify"},
-		EndEvents:   []string{"MyEvent_End"},
+		NodeStartEvents: []string{"MyEvent_ResolveRoles", "MyEvent_Notify"},
+		NodeEndEvents:   []string{"MyEvent_End"},
 	}
 
 	//副总审批任务节点
 	//注意，IsCosigned=1说明这是一个会签节点，全部通过才算通过，一人驳回即算驳回
+	//另外，这里使用了Task结束事件，请务必查看一下该事件逻辑
 	Node6 := Node{NodeID: "DeputyBoss", NodeName: "副总审批",
 		NodeType: 1, Roles: []string{"副总"},
 		IsCosigned:  1,
 		PrevNodeIDs: []string{"GW-Parallel"},
-		StartEvents: []string{"MyEvent_ResolveRoles", "MyEvent_Notify"},
-		EndEvents:   []string{"MyEvent_End"},
+		NodeStartEvents: []string{"MyEvent_ResolveRoles", "MyEvent_Notify"},
+		NodeEndEvents:   []string{"MyEvent_End"},
+		TaskFinishEvents: []string{"MyEvent_TaskForceNodePass"},
 	}
 
 	//此网关承接上一个NodeID=GW-Parallel的网关
@@ -76,14 +78,14 @@ func CreateProcessJson() (string, error) {
 	Node8 := Node{NodeID: "Boss", NodeName: "老板审批",
 		NodeType: 1, Roles: []string{"老板"},
 		PrevNodeIDs: []string{"GW-Parallel2"},
-		StartEvents: []string{"MyEvent_ResolveRoles", "MyEvent_Notify"},
-		EndEvents:   []string{"MyEvent_End"},
+		NodeStartEvents: []string{"MyEvent_ResolveRoles", "MyEvent_Notify"},
+		NodeEndEvents:   []string{"MyEvent_End"},
 	}
 
 	//结束节点
 	Node9 := Node{NodeID: "END", NodeName: "END",
 		NodeType: 3, PrevNodeIDs: []string{"GW-Day", "Boss"},
-		StartEvents: []string{"MyEvent_Notify"}}
+		NodeStartEvents: []string{"MyEvent_Notify"}}
 
 	//流程是节点的集合，所以要把上面所有的节点放在一个切片中
 	var Nodelist []Node

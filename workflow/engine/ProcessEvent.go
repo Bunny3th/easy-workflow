@@ -17,7 +17,9 @@ type method struct {
 var EventPool = make(map[string]method)
 
 //注册一个struct中的所有func
-//注意，func签名必须是func(struct *interface{}, ProcessInstanceID int, CurrentNode *Node, PrevNode Node) error
+//注意:
+//1、节点事件     func签名必须是func(struct *interface{}, ProcessInstanceID int, CurrentNode *Node, PrevNode Node) error
+//2、Task完成事件 func签名必须是func(struct *interface{}, TaskID int, CurrentNode *Node, PrevNode Node) error
 func RegisterEvents(Struct any) {
 	StructValue := reflect.ValueOf(Struct)
 	StructType := StructValue.Type()
@@ -60,8 +62,8 @@ func RegisterEvents(Struct any) {
 func CheckIfEventRegistered(ProcessNode Node) error {
 	//首先合并节点的开始和结束事件
 	var events []string
-	events = append(events, ProcessNode.StartEvents...)
-	events = append(events, ProcessNode.EndEvents...)
+	events = append(events, ProcessNode.NodeStartEvents...)
+	events = append(events, ProcessNode.NodeEndEvents...)
 	//判断该节点中是否所有事件都已经被注册
 	for _, event := range events {
 		if _, ok := EventPool[event]; !ok {
@@ -73,7 +75,7 @@ func CheckIfEventRegistered(ProcessNode Node) error {
 }
 
 //运行事件
-func RunEvents(EventNames []string, ProcessInstanceID int, CurrentNode *Node, PrevNode Node) error {
+func RunEvents(EventNames []string, ID int, CurrentNode *Node, PrevNode Node) error {
 	for _,e:=range EventNames {
 		//log.Printf("正在处理节点[%s]中事件[%s]", CurrentNode.NodeName, e)
 		//判断是否可以在事件池中获取事件
@@ -85,7 +87,7 @@ func RunEvents(EventNames []string, ProcessInstanceID int, CurrentNode *Node, Pr
 		//拼装参数
 		arg := []reflect.Value{
 			reflect.ValueOf(event.S),
-			reflect.ValueOf(ProcessInstanceID),
+			reflect.ValueOf(ID),
 			reflect.ValueOf(CurrentNode),
 			reflect.ValueOf(PrevNode),
 		}
