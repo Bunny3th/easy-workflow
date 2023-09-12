@@ -90,11 +90,41 @@ func (e *MyEvent) MyEvent_TaskForceNodePass(TaskID int, CurrentNode *Node, PrevN
 	if err != nil {
 		return err
 	}
-	//如果通过数>=2，则直接把节点中所有任务都置为通过and结束，这样节点就强制被完成
+	//如果通过数>=2，则:
+	//1、直接把节点中所有任务都置为通过and结束，这样节点就强制被完成
+	//2、自动生成comment，以免其他被代表的用户疑惑
+
 	if PassNum >= 2 {
-		dao.DB.Model(&database.Task{}).
+		tx := dao.DB.Begin()
+
+		//找到本节点那些还没有通过的task
+		var tasks []database.Task
+		result := tx.Where("proc_inst_id=? AND node_id=? AND batch_code=? AND is_finished=0",
+			taskInfo.ProcInstID, taskInfo.NodeID, taskInfo.BatchCode).Find(&tasks)
+		if result.Error != nil {
+			return result.Error
+		}
+
+		var comments []database.TaskComment
+		for _, t := range tasks {
+			comments = append(comments,
+				database.TaskComment{ProcInstID: t.ProcInstID, TaskID: t.ID, Comment: "通过人数已满2人，系统自动代表你通过"})
+		}
+
+		//代表他们生成comment
+		result = tx.Create(&comments)
+		if result.Error != nil {
+			return result.Error
+		}
+
+		//代表他们通过
+		result = tx.Model(&database.Task{}).
 			Where("proc_inst_id=? AND node_id=? AND batch_code=?", taskInfo.ProcInstID, taskInfo.NodeID, taskInfo.BatchCode).
-			Updates(database.Task{IsFinished: 1,Status: 1})
+			Updates(database.Task{IsFinished: 1, Status: 1})
+		if result.Error != nil {
+			return result.Error
+		}
+		tx.Commit()
 	}
 
 	return nil
