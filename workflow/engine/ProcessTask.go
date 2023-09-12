@@ -644,6 +644,11 @@ func WhatCanIDo(TaskID int) (TaskAction, error) {
 		return TaskAction{}, err
 	}
 
+	//如果任务已经完成，则什么都做不了
+	if taskInfo.IsFinished==1{
+		return TaskAction{CanPass: false, CanReject: false, CanFreeRejectToUpstreamNode: false, CanDirectlyToWhoRejectedMe: false},nil
+	}
+
 	node, err := GetInstanceNode(taskInfo.ProcInstID, taskInfo.NodeID)
 	if err != nil {
 		return TaskAction{}, nil
