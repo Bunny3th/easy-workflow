@@ -259,10 +259,20 @@ func ProcessAfterTaskFinished(TaskID int, option taskOption) error {
 	return nil
 }
 
-//获取任务信息
+//获取任务信息.注意：
+//1、BusinessID、Comment这2个字段，只能在task所属流程实例未结束时才能获得(查询归档表性能不佳)
+//以下几个字段，为减少表连接本方法亦不提供，需要时可以使用其他方法获取
+//1、ProcName可以通过GetProcessNameByInstanceID方法获得
+//2、NodeName可通过GetInstanceNode方法获得
 func GetTaskInfo(TaskID int) (Task, error) {
 	var task Task
-	_, err := ExecSQL("select * from task where id=?", &task, TaskID)
+	sql:="SELECT a.id,a.proc_id,b.business_id, a.proc_inst_id,a.node_id,a.prev_node_id,\n" +
+		"a.is_cosigned,a.batch_code,a.user_id,a.status ,a.is_finished,c.comment,a.create_time,a.finished_time\n" +
+		"FROM task a\n" +
+		"LEFT JOIN proc_inst b ON a.proc_inst_id=b.id\n" +
+		"LEFT JOIN `task_comment` c ON a.id=c.task_id\n" +
+		"where a.id=?"
+	_, err := ExecSQL(sql, &task, TaskID)
 	if err != nil {
 		return Task{}, err
 	}
