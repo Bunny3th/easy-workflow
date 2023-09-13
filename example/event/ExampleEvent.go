@@ -2,9 +2,9 @@ package event
 
 import (
 	"github.com/Bunny3th/easy-workflow/workflow/dao"
+	"github.com/Bunny3th/easy-workflow/workflow/database"
 	. "github.com/Bunny3th/easy-workflow/workflow/engine"
 	. "github.com/Bunny3th/easy-workflow/workflow/model"
-	"github.com/Bunny3th/easy-workflow/workflow/database"
 	"log"
 )
 
