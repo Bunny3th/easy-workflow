@@ -53,7 +53,7 @@ type HistProcInst struct {
 }
 
 //任务表
-type Task struct {
+type ProcTask struct {
 	ID           int       `gorm:"primaryKey;column:id;type:INT UNSIGNED NOT NULL AUTO_INCREMENT;comment:任务ID"`
 	ProcID       int       `gorm:"index:ix_proc_id;column:proc_id;type:INT UNSIGNED NOT NULL;comment:流程ID,冗余字段，偷懒用"`
 	ProcInstID   int       `gorm:"index:ix_proc_inst_id;column:proc_inst_id;type:INT UNSIGNED NOT NULL;comment:流程实例ID"`
@@ -72,7 +72,7 @@ type Task struct {
 }
 
 //任务历史表
-type HistTask struct {
+type HistProcTask struct {
 	CommonID
 	TaskID       int       `gorm:"index:ix_task_id;column:task_id;type:INT UNSIGNED NOT NULL;comment:任务ID"`
 	ProcID       int       `gorm:"index:ix_proc_id;column:proc_id;type:INT UNSIGNED NOT NULL;comment:流程ID,冗余字段，偷懒用"`

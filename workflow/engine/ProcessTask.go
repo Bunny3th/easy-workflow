@@ -23,9 +23,9 @@ func CreateTask(ProcessInstanceID int, NodeID string, PrevNodeID string, UserIDs
 	所以，在同一实例中，如果某一个节点任务还未finish，这个节点任务就不应该再次被生成
 	*/
 	var task Task
-	result := DB.Raw("SELECT * FROM task "+
+	result := DB.Raw("SELECT * FROM proc_task "+
 		"WHERE proc_inst_id=? AND node_id=? AND is_finished=0 "+
-		"ORDER BY `task`.`id` LIMIT 1", ProcessInstanceID, NodeID).Scan(&task)
+		"ORDER BY id LIMIT 1", ProcessInstanceID, NodeID).Scan(&task)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -59,9 +59,9 @@ func CreateTask(ProcessInstanceID int, NodeID string, PrevNodeID string, UserIDs
 	}
 
 	//开始生成数据
-	var tasks []database.Task
+	var tasks []database.ProcTask
 	for _, u := range UserIDs {
-		tasks = append(tasks, database.Task{ProcID: ProcID, ProcInstID: ProcessInstanceID,
+		tasks = append(tasks, database.ProcTask{ProcID: ProcID, ProcInstID: ProcessInstanceID,
 			BusinessID: ProcInstInfo.BusinessID,NodeID: NodeID,NodeName: Node.NodeName,
 			PrevNodeID: PrevNodeID, IsCosigned: Node.IsCosigned, BatchCode: BatchCode, UserID: u})
 	}
@@ -272,11 +272,11 @@ func GetTaskInfo(TaskID int) (Task, error) {
 	sql:="WITH tmp_task AS\n" +
 		"(SELECT id,proc_id, proc_inst_id,business_id,node_id,node_name,prev_node_id,is_cosigned,\n" +
 		"batch_code,user_id,`status` ,is_finished,`comment`,create_time,finished_time \n" +
-		"FROM task WHERE id=?\n" +
+		"FROM proc_task WHERE id=?\n" +
 		"UNION ALL\n" +
 		"SELECT task_id AS id,proc_id, proc_inst_id,business_id,node_id,node_name,prev_node_id,is_cosigned,\n" +
 		"batch_code,user_id,`status` ,is_finished,`comment`,create_time,finished_time \n" +
-		"FROM hist_task WHERE id=?\n" +
+		"FROM hist_proc_task WHERE id=?\n" +
 		")\n\n" +
 		"SELECT a.id,a.proc_id,b.name,a.proc_inst_id,a.business_id,a.node_id,a.node_name,a.prev_node_id,a.is_cosigned,\n" +
 		"a.batch_code,a.user_id,a.`status` ,a.is_finished,a.`comment`,\n" +
@@ -303,7 +303,7 @@ func GetTaskToDoList(UserID string) ([]Task, error) {
 		"a.is_cosigned,a.batch_code,a.user_id,a.`status` ,a.is_finished,a.`comment`,\n" +
 		"DATE_FORMAT(a.create_time,'%Y-%m-%d %T') AS create_time,\n" +
 		"DATE_FORMAT(a.finished_time,'%Y-%m-%d %T') AS finished_time\n" +
-		"FROM task a\n" +
+		"FROM proc_task a\n" +
 		"LEFT JOIN `proc_def` b ON a.proc_id=b.id\n" +
 		"WHERE a.user_id=? AND a.is_finished=0 ORDER BY a.id;"
 
@@ -320,11 +320,11 @@ func GetTaskFinishedList(UserID string) ([]Task, error) {
 	sql := "WITH tmp_task AS\n" +
 		"(SELECT id,proc_id, proc_inst_id,business_id,node_id,node_name,prev_node_id,is_cosigned,\n" +
 		"batch_code,user_id,`status` ,is_finished,`comment`,create_time,finished_time \n" +
-		"FROM task WHERE user_id=?\n" +
+		"FROM proc_task WHERE user_id=?\n" +
 		"UNION ALL\n" +
 		"SELECT task_id AS id,proc_id, proc_inst_id,business_id,node_id,node_name,prev_node_id,is_cosigned,\n" +
 		"batch_code,user_id,`status` ,is_finished,`comment`,create_time,finished_time \n" +
-		"FROM hist_task WHERE user_id=?\n" +
+		"FROM hist_proc_task WHERE user_id=?\n" +
 		")\n\n" +
 		"SELECT a.id,a.proc_id,b.name,a.proc_inst_id,a.business_id,a.node_id,a.node_name,a.prev_node_id,a.is_cosigned,\n" +
 		"a.batch_code,a.user_id,a.`status` ,a.is_finished,a.`comment`,DATE_FORMAT(a.create_time,'%Y-%m-%d %T') AS create_time,\n" +
@@ -409,11 +409,11 @@ func GetInstanceTaskHistory(ProcessInstanceID int) ([]Task, error) {
 	sql := "WITH tmp_task AS\n" +
 		"(SELECT id,proc_id, proc_inst_id,business_id,node_id,node_name,prev_node_id,is_cosigned,\n" +
 		"batch_code,user_id,`status` ,is_finished,`comment`,create_time,finished_time \n" +
-		"FROM task WHERE proc_inst_id=?\n" +
+		"FROM proc_task WHERE proc_inst_id=?\n" +
 		"UNION ALL\n" +
 		"SELECT task_id AS id,proc_id, proc_inst_id,business_id,node_id,node_name,prev_node_id,is_cosigned,\n" +
 		"batch_code,user_id,`status` ,is_finished,`comment`,create_time,finished_time \n" +
-		"FROM hist_task WHERE proc_inst_id=?\n" +
+		"FROM hist_proc_task WHERE proc_inst_id=?\n" +
 		")\n\n" +
 		"SELECT a.id,a.proc_id,b.name,a.proc_inst_id,a.business_id,a.node_id,a.node_name,a.prev_node_id,a.is_cosigned,\n" +
 		"a.batch_code,a.user_id,a.`status` ,a.is_finished,a.`comment`,\n" +
@@ -521,7 +521,7 @@ func TaskNodeStatus(TaskID int) (int, int, int, error) {
 	r := DB.Raw("SELECT COUNT(*) AS total_task,\n"+
 		"SUM(CASE `status` WHEN 1 THEN 1 ELSE 0 END) AS total_passed,\n"+
 		"SUM(CASE `status` WHEN 2 THEN 1 ELSE 0 END) AS total_rejected \n"+
-		"FROM task \n"+
+		"FROM proc_task \n"+
 		"WHERE proc_inst_id=? \n "+
 		"AND node_id=? \n  "+
 		"AND `batch_code`=?;", taskInfo.ProcInstID, taskInfo.NodeID, taskInfo.BatchCode).Scan(&result)
@@ -553,8 +553,8 @@ func taskSubmitSave(TaskID int, Comment string, VariableJson string, Status int)
 	tx := DB.Begin()
 
 	//更新task表记录
-	result := tx.Model(&database.Task{}).Where("id=?", taskInfo.TaskID).
-		Updates(database.Task{Status: Status, IsFinished: 1, Comment: Comment,FinishedTime: time.Now()})
+	result := tx.Model(&database.ProcTask{}).Where("id=?", taskInfo.TaskID).
+		Updates(database.ProcTask{Status: Status, IsFinished: 1, Comment: Comment,FinishedTime: time.Now()})
 	if result.Error != nil {
 		tx.Rollback()
 		return result.Error
@@ -563,8 +563,8 @@ func taskSubmitSave(TaskID int, Comment string, VariableJson string, Status int)
 	//1、非会签节点，一人通过即通过，所以要把其他人的任务finish掉
 	//2、不论是否会签，都是一人驳回即驳回，所以需要把同一批次task的isfinish设置为1,让其他人不用再处理
 	if (taskInfo.IsCosigned == 0 && Status == 1) || Status == 2 {
-		result = tx.Model(&database.Task{}).Where("batch_code=?", taskInfo.BatchCode).
-			Updates(database.Task{IsFinished: 1, FinishedTime: time.Now()})
+		result = tx.Model(&database.ProcTask{}).Where("batch_code=?", taskInfo.BatchCode).
+			Updates(database.ProcTask{IsFinished: 1, FinishedTime: time.Now()})
 		if result.Error != nil {
 			tx.Rollback()
 			return result.Error
@@ -586,9 +586,9 @@ func taskPrevNodeIsReject(TaskInfo Task) (error, bool) {
 	var batchCode BatchCode
 
 	result:=DB.Raw("SELECT a.batch_code\n"+
-		"FROM task a\n "+
+		"FROM proc_task a\n "+
 		"JOIN \n"+
-		"(SELECT prev_node_id,proc_inst_id FROM task WHERE id=?) b \n        "+
+		"(SELECT prev_node_id,proc_inst_id FROM proc_task WHERE id=?) b \n        "+
 		"ON a.node_id=b.prev_node_id AND a.proc_inst_id=b.proc_inst_id\n        "+
 		"ORDER BY a.id DESC LIMIT 1;", TaskInfo.TaskID).Scan(&batchCode)
 	if result.Error != nil {
@@ -596,8 +596,8 @@ func taskPrevNodeIsReject(TaskInfo Task) (error, bool) {
 	}
 
 	//获得上一个实际执行过程中状态为驳回的任务
-	var prevTask database.Task
-	result = DB.Raw("SELECT id FROM task WHERE batch_code =? AND `status`=2 LIMIT 1", batchCode.BatchCode).Scan(&prevTask)
+	var prevTask database.ProcTask
+	result = DB.Raw("SELECT id FROM proc_task WHERE batch_code =? AND `status`=2 LIMIT 1", batchCode.BatchCode).Scan(&prevTask)
 	if result.Error != nil {
 		return result.Error, false
 	}

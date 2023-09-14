@@ -98,7 +98,7 @@ func (e *MyEvent) MyEvent_TaskForceNodePass(TaskID int, CurrentNode *Node, PrevN
 		tx := dao.DB.Begin()
 
 		//找到本节点那些还没有通过的task
-		var tasks []database.Task
+		var tasks []database.ProcTask
 		result := tx.Where("proc_inst_id=? AND node_id=? AND batch_code=? AND is_finished=0",
 			taskInfo.ProcInstID, taskInfo.NodeID, taskInfo.BatchCode).Find(&tasks)
 		if result.Error != nil {
@@ -106,9 +106,9 @@ func (e *MyEvent) MyEvent_TaskForceNodePass(TaskID int, CurrentNode *Node, PrevN
 		}
 
 		//代表他们通过
-		result = tx.Model(&database.Task{}).
+		result = tx.Model(&database.ProcTask{}).
 			Where("proc_inst_id=? AND node_id=? AND batch_code=? AND is_finished=0", taskInfo.ProcInstID, taskInfo.NodeID, taskInfo.BatchCode).
-			Updates(database.Task{Comment:"通过人数已满2人，系统自动代表你通过" ,IsFinished: 1, Status: 1})
+			Updates(database.ProcTask{Comment:"通过人数已满2人，系统自动代表你通过" ,IsFinished: 1, Status: 1})
 		if result.Error != nil {
 			return result.Error
 		}

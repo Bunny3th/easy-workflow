@@ -85,7 +85,7 @@ func EndNodeHandle(ProcessInstanceID int, Status int) error {
 	//***这里注意，经过多次测试，执行原生SQL，无返回值必须用Exec,用Raw会不执行***
 
 	//将task表中所有该流程未finish的设置为finish
-	result := tx.Exec("UPDATE task SET is_finished=1,finished_time=NOW() "+
+	result := tx.Exec("UPDATE proc_task SET is_finished=1,finished_time=NOW() "+
 		"WHERE proc_inst_id=? AND is_finished=0;", ProcessInstanceID)
 	if result.Error != nil {
 		tx.Rollback()
@@ -93,18 +93,18 @@ func EndNodeHandle(ProcessInstanceID int, Status int) error {
 	}
 
 	//将task表中任务归档
-	result = tx.Exec("INSERT INTO hist_task(task_id,proc_id,proc_inst_id,business_id,node_id,node_name,prev_node_id,is_cosigned,\n"+
+	result = tx.Exec("INSERT INTO hist_proc_task(task_id,proc_id,proc_inst_id,business_id,node_id,node_name,prev_node_id,is_cosigned,\n"+
 		"batch_code,user_id,`status`,is_finished,`comment`,create_time,finished_time)\n "+
 		"SELECT id,proc_id,proc_inst_id,business_id,node_id,node_name,prev_node_id,is_cosigned,batch_code,user_id,`status`,\n"+
 		"is_finished,`comment`,create_time,finished_time \n"+
-		"FROM task WHERE proc_inst_id=?;", ProcessInstanceID)
+		"FROM proc_task WHERE proc_inst_id=?;", ProcessInstanceID)
 	if result.Error != nil {
 		tx.Rollback()
 		return result.Error
 	}
 
 	//删除task表中历史数据
-	result = tx.Exec(" DELETE FROM task WHERE proc_inst_id=?;", ProcessInstanceID)
+	result = tx.Exec(" DELETE FROM proc_task WHERE proc_inst_id=?;", ProcessInstanceID)
 	if result.Error != nil {
 		tx.Rollback()
 		return result.Error
@@ -317,7 +317,7 @@ func InstanceNodeIsFinish(ProcessInstanceID int, NodeID string) (bool, error) {
 	sql := "SELECT CASE WHEN total=finished THEN 1 ELSE 0 END AS finished " +
 		"FROM " +
 		"(SELECT COUNT(*) AS total,SUM(is_finished) AS finished " +
-		"FROM `task` WHERE proc_inst_id=? AND node_id=? GROUP BY proc_inst_id,node_id) a"
+		"FROM `proc_task` WHERE proc_inst_id=? AND node_id=? GROUP BY proc_inst_id,node_id) a"
 
 	if _, err := dao.ExecSQL(sql, &finished, ProcessInstanceID, NodeID); err == nil {
 		return finished, nil
