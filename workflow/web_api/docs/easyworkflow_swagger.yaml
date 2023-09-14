@@ -26,11 +26,6 @@ definitions:
     type: object
   model.Node:
     properties:
-      endEvents:
-        description: 节点结束时触发的事件
-        items:
-          type: string
-        type: array
       gwconfig:
         allOf:
         - $ref: '#/definitions/model.HybridGateway'
@@ -38,12 +33,22 @@ definitions:
       isCosigned:
         description: 是否会签  只有任务节点才会用到，会签的情况下需要所有任务通过才能进行下一节点，只要有一人反对，则整个节点驳回
         type: integer
+      nodeEndEvents:
+        description: 节点结束时触发的事件
+        items:
+          type: string
+        type: array
       nodeID:
         description: 节点名称
         type: string
       nodeName:
         description: 节点名字
         type: string
+      nodeStartEvents:
+        description: 节点开始时触发的事件
+        items:
+          type: string
+        type: array
       nodeType:
         allOf:
         - $ref: '#/definitions/model.NodeType'
@@ -58,8 +63,8 @@ definitions:
         items:
           type: string
         type: array
-      startEvents:
-        description: 节点开始时触发的事件
+      taskFinishEvents:
+        description: 任务完成(通过、驳回)时触发的事件。节点中可能产生N个任务，任务完成事件，会在每个任务完成时触发
         items:
           type: string
         type: array
@@ -373,7 +378,7 @@ paths:
       - description: 任务ID
         example: 1
         in: query
-        name: TaskID
+        name: taskid
         required: true
         type: integer
       produces:
@@ -414,6 +419,29 @@ paths:
           schema:
             type: string
       summary: 获取已办任务
+      tags:
+      - 任务
+  /task/info:
+    get:
+      parameters:
+      - description: 任务ID
+        example: 1
+        in: query
+        name: taskid
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 任务信息
+          schema:
+            $ref: '#/definitions/model.Task'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+      summary: 任务信息
       tags:
       - 任务
   /task/pass:

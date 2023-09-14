@@ -39,6 +39,7 @@ func NewRouter(engine *gin.Engine, ApiBasePath string, ShowSwaggerDoc bool, Swag
 	router.GET("/task/finished", Task_FinishedList)
 	router.GET("/task/upstream", Task_UpstreamNodeList)
 	router.GET("/task/action", Task_WhatCanIDo)
+	router.GET("/task/info", Task_Info)
 
 	return engine
 }

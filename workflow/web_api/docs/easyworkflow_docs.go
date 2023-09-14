@@ -307,7 +307,7 @@ const docTemplateeasyworkflow = `{
                         "type": "integer",
                         "example": 1,
                         "description": "任务ID",
-                        "name": "TaskID",
+                        "name": "taskid",
                         "in": "query",
                         "required": true
                     }
@@ -356,6 +356,41 @@ const docTemplateeasyworkflow = `{
                             "items": {
                                 "$ref": "#/definitions/model.Task"
                             }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/task/info": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "任务"
+                ],
+                "summary": "任务信息",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "example": 1,
+                        "description": "任务ID",
+                        "name": "taskid",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "任务信息",
+                        "schema": {
+                            "$ref": "#/definitions/model.Task"
                         }
                     },
                     "400": {
@@ -691,13 +726,6 @@ const docTemplateeasyworkflow = `{
         "model.Node": {
             "type": "object",
             "properties": {
-                "endEvents": {
-                    "description": "节点结束时触发的事件",
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
                 "gwconfig": {
                     "description": "网关。只有在节点类型为GateWay的情况下此字段才会有值",
                     "allOf": [
@@ -710,6 +738,13 @@ const docTemplateeasyworkflow = `{
                     "description": "是否会签  只有任务节点才会用到，会签的情况下需要所有任务通过才能进行下一节点，只要有一人反对，则整个节点驳回",
                     "type": "integer"
                 },
+                "nodeEndEvents": {
+                    "description": "节点结束时触发的事件",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "nodeID": {
                     "description": "节点名称",
                     "type": "string"
@@ -717,6 +752,13 @@ const docTemplateeasyworkflow = `{
                 "nodeName": {
                     "description": "节点名字",
                     "type": "string"
+                },
+                "nodeStartEvents": {
+                    "description": "节点开始时触发的事件",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "nodeType": {
                     "description": "节点类型 0:开始节点 1:任务节点,指的是需要人完成的节点 2:网关 3:结束节点",
@@ -740,8 +782,8 @@ const docTemplateeasyworkflow = `{
                         "type": "string"
                     }
                 },
-                "startEvents": {
-                    "description": "节点开始时触发的事件",
+                "taskFinishEvents": {
+                    "description": "任务完成(通过、驳回)时触发的事件。节点中可能产生N个任务，任务完成事件，会在每个任务完成时触发",
                     "type": "array",
                     "items": {
                         "type": "string"

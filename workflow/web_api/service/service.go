@@ -342,7 +342,7 @@ func Task_FreeRejectToUpstreamNode(c *gin.Context) {
 // @Description  前端无法提前知道当前任务可以做哪些操作，此方法目的是解决这个困扰
 // @Tags         任务
 // @Produce      json
-// @Param        TaskID  query int  true  "任务ID" example(1)
+// @Param        taskid  query int  true  "任务ID" example(1)
 // @Success      200  {object}  model.TaskAction "可执行任务"
 // @Failure      400  {object}  string 报错信息
 // @Router       /task/action [get]
@@ -354,6 +354,26 @@ func Task_WhatCanIDo(c *gin.Context) {
 	if action, err := WhatCanIDo(TaskID); err == nil {
 		c.JSON(200, action)
 	} else {
+		c.JSON(400, err.Error())
+	}
+}
+
+// @Summary      任务信息
+// @Description
+// @Tags         任务
+// @Produce      json
+// @Param        taskid  query int  true  "任务ID" example(1)
+// @Success      200  {object}  model.Task "任务信息"
+// @Failure      400  {object}  string 报错信息
+// @Router       /task/info [get]
+func Task_Info(c *gin.Context) {
+	TaskID,err:=strconv.Atoi(c.Query("taskid"))
+	if err != nil {
+		c.AbortWithStatusJSON(400, err.Error())
+	}
+	if taskInfo,err:=GetTaskInfo(TaskID);err==nil{
+		c.JSON(200,taskInfo)
+	}else{
 		c.JSON(400, err.Error())
 	}
 }
