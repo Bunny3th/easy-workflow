@@ -10,8 +10,6 @@ func DatabaseInitialize(){
 	dao.DB.AutoMigrate(&HistProcInst{})
 	dao.DB.AutoMigrate(&Task{})
 	dao.DB.AutoMigrate(&HistTask{})
-	dao.DB.AutoMigrate(&TaskComment{})
-	dao.DB.AutoMigrate(&HistTaskComment{})
 	dao.DB.AutoMigrate(&ProcExecution{})
 	dao.DB.AutoMigrate(&HistProcExecution{})
 	dao.DB.AutoMigrate(&ProcInstVariable{})

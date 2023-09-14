@@ -177,3 +177,14 @@ func InstanceVariablesSave(ProcessInstanceID int, VariablesJson string) error {
 
 	return nil
 }
+
+//获取流程实例信息
+func GetInstanceInfo(ProcessInstanceID int) (database.ProcInst, error) {
+	var procInst database.ProcInst
+	_, err := dao.ExecSQL("SELECT * FROM proc_inst WHERE id=?", &procInst, ProcessInstanceID)
+	if err != nil {
+		return procInst, err
+	}
+
+	return procInst, nil
+}

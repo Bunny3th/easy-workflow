@@ -105,22 +105,10 @@ func (e *MyEvent) MyEvent_TaskForceNodePass(TaskID int, CurrentNode *Node, PrevN
 			return result.Error
 		}
 
-		var comments []database.TaskComment
-		for _, t := range tasks {
-			comments = append(comments,
-				database.TaskComment{ProcInstID: t.ProcInstID, TaskID: t.ID, Comment: "通过人数已满2人，系统自动代表你通过"})
-		}
-
-		//代表他们生成comment
-		result = tx.Create(&comments)
-		if result.Error != nil {
-			return result.Error
-		}
-
 		//代表他们通过
 		result = tx.Model(&database.Task{}).
-			Where("proc_inst_id=? AND node_id=? AND batch_code=?", taskInfo.ProcInstID, taskInfo.NodeID, taskInfo.BatchCode).
-			Updates(database.Task{IsFinished: 1, Status: 1})
+			Where("proc_inst_id=? AND node_id=? AND batch_code=? AND is_finished=0", taskInfo.ProcInstID, taskInfo.NodeID, taskInfo.BatchCode).
+			Updates(database.Task{Comment:"通过人数已满2人，系统自动代表你通过" ,IsFinished: 1, Status: 1})
 		if result.Error != nil {
 			return result.Error
 		}

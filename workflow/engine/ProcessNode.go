@@ -93,10 +93,10 @@ func EndNodeHandle(ProcessInstanceID int, Status int) error {
 	}
 
 	//将task表中任务归档
-	result = tx.Exec("INSERT INTO hist_task(task_id,proc_id,proc_inst_id,node_id,prev_node_id,is_cosigned,\n"+
-		"batch_code,user_id,`status`,is_finished,create_time,finished_time)\n "+
-		"SELECT id,proc_id,proc_inst_id,node_id,prev_node_id,is_cosigned,batch_code,user_id,`status`,\n"+
-		"is_finished,create_time,finished_time \n"+
+	result = tx.Exec("INSERT INTO hist_task(task_id,proc_id,proc_inst_id,business_id,node_id,node_name,prev_node_id,is_cosigned,\n"+
+		"batch_code,user_id,`status`,is_finished,`comment`,create_time,finished_time)\n "+
+		"SELECT id,proc_id,proc_inst_id,business_id,node_id,node_name,prev_node_id,is_cosigned,batch_code,user_id,`status`,\n"+
+		"is_finished,`comment`,create_time,finished_time \n"+
 		"FROM task WHERE proc_inst_id=?;", ProcessInstanceID)
 	if result.Error != nil {
 		tx.Rollback()
@@ -129,21 +129,6 @@ func EndNodeHandle(ProcessInstanceID int, Status int) error {
 
 	//删除proc_inst表中历史数据
 	result = tx.Exec("DELETE FROM proc_inst WHERE id=?;", ProcessInstanceID)
-	if result.Error != nil {
-		tx.Rollback()
-		return result.Error
-	}
-
-	//将task_comment归档
-	result = tx.Exec("INSERT INTO hist_task_comment(proc_inst_id,task_id,`comment`)\n        "+
-		"SELECT proc_inst_id,task_id,`comment` FROM task_comment WHERE proc_inst_id=?;", ProcessInstanceID)
-	if result.Error != nil {
-		tx.Rollback()
-		return result.Error
-	}
-
-	//删除task_comment中历史数据
-	result = tx.Exec("DELETE FROM task_comment WHERE proc_inst_id=?;", ProcessInstanceID)
 	if result.Error != nil {
 		tx.Rollback()
 		return result.Error
