@@ -9,12 +9,15 @@ import (
 )
 
 type method struct {
-	S interface{} //method所在的struct，这是函数执行的第一个参数
-	M reflect.Method  //方法
+	S interface{}    //method所在的struct，这是函数执行的第一个参数
+	M reflect.Method //方法
 }
 
 //事件池，所有的事件都会在流程引擎启动的时候注册到这里
 var EventPool = make(map[string]method)
+
+//事件出错，则可能导致流程无法运行下去,在这里添加选项，是否忽略事件出错，让流程继续
+var IgnoreEventError bool
 
 //注册一个struct中的所有func
 //注意:
@@ -76,7 +79,7 @@ func CheckIfEventRegistered(ProcessNode Node) error {
 
 //运行事件
 func RunEvents(EventNames []string, ID int, CurrentNode *Node, PrevNode Node) error {
-	for _,e:=range EventNames {
+	for _, e := range EventNames {
 		//log.Printf("正在处理节点[%s]中事件[%s]", CurrentNode.NodeName, e)
 		//判断是否可以在事件池中获取事件
 		event, ok := EventPool[e]
@@ -95,11 +98,14 @@ func RunEvents(EventNames []string, ID int, CurrentNode *Node, PrevNode Node) er
 		//运行func
 		result := event.M.Func.Call(arg)
 
-		//判断第一个返回参数是否为nil
-		if !result[0].IsNil() {
-			return fmt.Errorf("节点[%s]事件[%s]执行出错:%v", CurrentNode.NodeName, event.M.Name, result[0])
+		//如果选项IgnoreEventError为false,则说明需要验证事件是否出错
+		if IgnoreEventError == false {
+			//判断第一个返回参数是否为nil,若不是，则说明事件出错
+			if !result[0].IsNil() {
+				return fmt.Errorf("节点[%s]事件[%s]执行出错:%v", CurrentNode.NodeName, event.M.Name, result[0])
+			}
 		}
 	}
+
 	return nil
 }
-

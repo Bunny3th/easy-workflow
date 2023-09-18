@@ -8,8 +8,11 @@ import (
 
 type DataBaseConfigurator func()
 
-//传入参数1、数据库配置方法，方法签名func(Params ...string) 2、动态参数，事件函数所关联的struct，可传多个
-func StartWorkFlow(DBConfigurator DataBaseConfigurator, EventStructs ...any) {
+//传入参数
+//1、DBConfigurator:数据库配置方法，方法签名func(Params ...string)
+//2、ignoreEventError:是否忽略事件错误
+//3、EventStructs:动态参数，事件函数所关联的struct，可传多个
+func StartWorkFlow(DBConfigurator DataBaseConfigurator,ignoreEventError bool,EventStructs ...any) {
 	//配置数据库
 	DBConfigurator()
 
@@ -19,6 +22,7 @@ func StartWorkFlow(DBConfigurator DataBaseConfigurator, EventStructs ...any) {
 	////初始化数据库表
 	DatabaseInitialize()
 
+	IgnoreEventError=ignoreEventError
 	//注册事件函数
 	for _, s := range EventStructs {
 		if s != nil {

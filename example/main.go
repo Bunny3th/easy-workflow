@@ -16,7 +16,7 @@ func DBConfig() {
 
 func main() {
 	//----------------------------开启流程引擎----------------------------
-	StartWorkFlow(DBConfig, &MyEvent{})
+	StartWorkFlow(DBConfig,true,&MyEvent{})
 
 	//----------------------------生成一个示例流程----------------------------
 	CreateExampleProcess()
