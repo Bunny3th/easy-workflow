@@ -222,7 +222,7 @@ func ProcessAfterTaskFinished(TaskID int, option taskOption) error {
 	}
 
 	//--------------------------这里处理[任务结束]事件--------------------------
-	err = RunEvents(CurrentNode.TaskFinishEvents, taskInfo.TaskID, &CurrentNode, PrevNode)
+	err = RunNodeEvents(CurrentNode.TaskFinishEvents, taskInfo.TaskID, &CurrentNode, PrevNode)
 	if err != nil {
 		return err
 	}
@@ -252,7 +252,7 @@ func ProcessAfterTaskFinished(TaskID int, option taskOption) error {
 	//2、开始处理下一个节点
 
 	//--------------------------这里处理节点结束事件--------------------------
-	err = RunEvents(CurrentNode.NodeEndEvents, taskInfo.ProcInstID, &CurrentNode, PrevNode)
+	err = RunNodeEvents(CurrentNode.NodeEndEvents, taskInfo.ProcInstID, &CurrentNode, PrevNode)
 	if err != nil {
 		return err
 	}

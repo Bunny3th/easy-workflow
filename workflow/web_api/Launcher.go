@@ -17,5 +17,5 @@ func StartWebApi(engine *gin.Engine, ApiBaseUrl string, ShowSwaggerDoc bool,Swag
 	//如何使用swagger生成文档
 	//一般在main包所在目录执行 swag init
 	//但本项目中，swagger命令需要在web_api目录中加上-d参数执行，如下
-	//swag init --generalInfo Launcher.go --instanceName easyworkflow -d ./,../model
+	//swag init --generalInfo Launcher.go --instanceName easyworkflow -d ./,../model,../database
 }

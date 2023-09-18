@@ -13,7 +13,7 @@ import (
 //处理节点,如：生成task、进行条件判断、处理结束节点等
 func ProcessNode(ProcessInstanceID int, CurrentNode *Node, PrevNode Node) error {
 	//这里处理开始事件
-	err := RunEvents(CurrentNode.NodeStartEvents, ProcessInstanceID, CurrentNode, PrevNode)
+	err := RunNodeEvents(CurrentNode.NodeStartEvents, ProcessInstanceID, CurrentNode, PrevNode)
 	if err != nil {
 		return err
 	}
@@ -59,7 +59,7 @@ func StartNodeHandle(ProcessInstanceID int, StartNode *Node, Comment string, Var
 	}
 
 	//这里处理节点开始事件
-	err := RunEvents(StartNode.NodeStartEvents, ProcessInstanceID, StartNode, Node{})
+	err := RunNodeEvents(StartNode.NodeStartEvents, ProcessInstanceID, StartNode, Node{})
 	if err != nil {
 		return err
 	}
@@ -259,7 +259,7 @@ func GateWayNodeHandle(ProcessInstanceID int, CurrentNode *Node, PrevTaskNode No
 	}
 
 	//这里处理节点结束事件
-	err := RunEvents(CurrentNode.NodeEndEvents, ProcessInstanceID, CurrentNode, PrevTaskNode)
+	err := RunNodeEvents(CurrentNode.NodeEndEvents, ProcessInstanceID, CurrentNode, PrevTaskNode)
 	if err != nil {
 		return err
 	}

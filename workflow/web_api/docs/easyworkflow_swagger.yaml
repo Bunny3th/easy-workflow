@@ -1,4 +1,21 @@
 definitions:
+  database.ProcDef:
+    properties:
+      creatTime:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      resource:
+        type: string
+      source:
+        type: string
+      userID:
+        type: string
+      version:
+        type: integer
+    type: object
   model.Condition:
     properties:
       expression:
@@ -91,30 +108,6 @@ definitions:
     - TaskNode
     - GateWayNode
     - EndNode
-  model.ProcessDefine:
-    properties:
-      createTime:
-        description: 创建时间
-        type: string
-      id:
-        description: 流程ID
-        type: integer
-      name:
-        description: 流程名字
-        type: string
-      resource:
-        description: 流程定义模板
-        type: string
-      source:
-        description: 来源(引擎可能被多个系统、组件等使用，这里记下从哪个来源创建的流程
-        type: string
-      userID:
-        description: 创建者ID
-        type: string
-      version:
-        description: 版本号
-        type: integer
-    type: object
   model.Task:
     properties:
       batchCode:
@@ -227,7 +220,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/model.ProcessDefine'
+              $ref: '#/definitions/database.ProcDef'
             type: array
         "400":
           description: Bad Request
@@ -239,12 +232,6 @@ paths:
   /def/save:
     post:
       parameters:
-      - description: 流程名称
-        example: 员工请假
-        in: formData
-        name: ProcessName
-        required: true
-        type: string
       - description: 流程定义资源(json)
         example: json字符串
         in: formData
@@ -255,12 +242,6 @@ paths:
         example: "0001"
         in: formData
         name: CreateUserID
-        required: true
-        type: string
-      - description: 来源
-        example: 办公系统
-        in: formData
-        name: Source
         required: true
         type: string
       produces:
@@ -287,6 +268,12 @@ paths:
         name: InstanceID
         required: true
         type: integer
+      - description: 撤销发起用户ID
+        example: '"U001"'
+        in: formData
+        name: RevokeUserID
+        required: true
+        type: string
       - description: 是否强制撤销
         in: formData
         name: Force

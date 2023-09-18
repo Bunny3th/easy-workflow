@@ -81,7 +81,7 @@ const docTemplateeasyworkflow = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/model.ProcessDefine"
+                                "$ref": "#/definitions/database.ProcDef"
                             }
                         }
                     },
@@ -106,14 +106,6 @@ const docTemplateeasyworkflow = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "example": "员工请假",
-                        "description": "流程名称",
-                        "name": "ProcessName",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
                         "example": "json字符串",
                         "description": "流程定义资源(json)",
                         "name": "Resource",
@@ -125,14 +117,6 @@ const docTemplateeasyworkflow = `{
                         "example": "0001",
                         "description": "创建者ID",
                         "name": "CreateUserID",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "example": "办公系统",
-                        "description": "来源",
-                        "name": "Source",
                         "in": "formData",
                         "required": true
                     }
@@ -169,6 +153,14 @@ const docTemplateeasyworkflow = `{
                         "example": 1,
                         "description": "流程实例ID",
                         "name": "InstanceID",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "example": "\"U001\"",
+                        "description": "撤销发起用户ID",
+                        "name": "RevokeUserID",
                         "in": "formData",
                         "required": true
                     },
@@ -687,6 +679,32 @@ const docTemplateeasyworkflow = `{
         }
     },
     "definitions": {
+        "database.ProcDef": {
+            "type": "object",
+            "properties": {
+                "creatTime": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "resource": {
+                    "type": "string"
+                },
+                "source": {
+                    "type": "string"
+                },
+                "userID": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "integer"
+                }
+            }
+        },
         "model.Condition": {
             "type": "object",
             "properties": {
@@ -818,39 +836,6 @@ const docTemplateeasyworkflow = `{
                 "GateWayNode",
                 "EndNode"
             ]
-        },
-        "model.ProcessDefine": {
-            "type": "object",
-            "properties": {
-                "createTime": {
-                    "description": "创建时间",
-                    "type": "string"
-                },
-                "id": {
-                    "description": "流程ID",
-                    "type": "integer"
-                },
-                "name": {
-                    "description": "流程名字",
-                    "type": "string"
-                },
-                "resource": {
-                    "description": "流程定义模板",
-                    "type": "string"
-                },
-                "source": {
-                    "description": "来源(引擎可能被多个系统、组件等使用，这里记下从哪个来源创建的流程",
-                    "type": "string"
-                },
-                "userID": {
-                    "description": "创建者ID",
-                    "type": "string"
-                },
-                "version": {
-                    "description": "版本号",
-                    "type": "integer"
-                }
-            }
         },
         "model.Task": {
             "type": "object",

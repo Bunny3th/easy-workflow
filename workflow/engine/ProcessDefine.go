@@ -12,34 +12,34 @@ import (
 )
 
 //流程定义解析(json->struct)
-func ProcessParse(Resource string) ([]Node, error) {
-	var nodes []Node
-	err := util.Json2Struct(Resource, &nodes)
+func ProcessParse(Resource string) (Process, error) {
+	var process Process
+	err := util.Json2Struct(Resource, &process)
 	if err != nil {
-		return nil, err
+		return Process{}, err
 	}
-	return nodes, nil
+	return process, nil
 }
 
 //todo:这里要写一个func，检查解析后的node结构，比如是否只有一个开始和结束节点
 
 //流程定义保存,返回 流程ID、error
-func ProcessSave(ProcessName string, Resource string, CreateUserID string, Source string) (int, error) {
-	if ProcessName == "" || Source == "" || CreateUserID == "" || Resource == "" {
-		return 0, errors.New("流程名称、资源定义、来源、创建人ID不能为空")
-	}
-
-	//解析传入的json，获得node列表
-	nodes, err := ProcessParse(Resource)
+func ProcessSave(Resource string, CreateUserID string) (int, error) {
+	//解析传入的json，获得process数据结构
+	process, err := ProcessParse(Resource)
 	if err != nil {
 		return 0, err
 	}
 
+	if process.ProcessName == "" || process.Source == "" || CreateUserID == "" {
+		return 0, errors.New("流程名称、来源、创建人ID不能为空")
+	}
+
 	//解析node之间的关系，流程节点执行关系定义记录
-	Execution := Nodes2Execution(nodes)
+	Execution := Nodes2Execution(process.Nodes)
 
 	//首先判断此工作流是否已定义
-	ProcID, Version, err := GetProcessIDByProcessName(dao.DB, ProcessName, Source)
+	ProcID, Version, err := GetProcessIDByProcessName(dao.DB, process.ProcessName, process.Source)
 	if err != nil {
 		return 0, err
 	}
@@ -51,14 +51,14 @@ func ProcessSave(ProcessName string, Resource string, CreateUserID string, Sourc
 		//需要将老版本移到历史表中
 		result := tx.Exec("INSERT INTO hist_proc_def(proc_id,NAME,`version`,resource,user_id,source,create_time)\n        "+
 			"SELECT id,NAME,`version`,resource,user_id,source,create_time\n"+
-			"FROM proc_def WHERE NAME=? AND source=?;", ProcessName, Source)
+			"FROM proc_def WHERE NAME=? AND source=?;", process.ProcessName, process.Source)
 		if result.Error != nil {
 			tx.Rollback()
 			return 0, result.Error
 		}
 		//而后更新现有定义
 		result = tx.Model(&database.ProcDef{}).
-			Where("name=? AND source=?", ProcessName, Source).
+			Where("name=? AND source=?", process.ProcessName, process.Source).
 			Updates(database.ProcDef{Version: Version + 1, Resource: Resource, UserID: CreateUserID, CreatTime: time.Now()})
 		if result.Error != nil {
 			tx.Rollback()
@@ -66,7 +66,7 @@ func ProcessSave(ProcessName string, Resource string, CreateUserID string, Sourc
 		}
 	} else {
 		//若没有老版本，则直接插入
-		procDef := database.ProcDef{Name: ProcessName, Resource: Resource, UserID: CreateUserID, Source: Source}
+		procDef := database.ProcDef{Name: process.ProcessName, Resource: Resource, UserID: CreateUserID, Source: process.Source}
 		result := tx.Create(&procDef)
 		if result.Error != nil {
 			tx.Rollback()
@@ -74,7 +74,7 @@ func ProcessSave(ProcessName string, Resource string, CreateUserID string, Sourc
 		}
 	}
 	//重新获得流程ID、版本号,此时因为是在事务中，所以需要传入tx
-	ProcID, Version, err = GetProcessIDByProcessName(tx, ProcessName, Source)
+	ProcID, Version, err = GetProcessIDByProcessName(tx, process.ProcessName, process.Source)
 	if err != nil {
 		return 0, err
 	}
@@ -157,12 +157,6 @@ func Nodes2Execution(nodes []Node) []Execution {
 		}
 	}
 	return executions
-	////转为json
-	//json, err := json.Marshal(executions)
-	//if err != nil {
-	//	return "", err
-	//}
-	//return string(json), nil
 }
 
 //获取流程ID、Version by 流程名、来源
@@ -206,23 +200,23 @@ func GetProcessNameByInstanceID(ProcessInstanceID int) (string, error) {
 	return r.Name, nil
 }
 
-//获取流程定义（返回流程中所有节点） by 流程ID
-func GetProcessDefine(ProcessID int) ([]Node, error) {
+//获取流程定义 by 流程ID
+func GetProcessDefine(ProcessID int) (Process, error) {
 	type result struct {
 		Resource string
 	}
 	var r result
 	_, err := dao.ExecSQL("SELECT resource FROM proc_def WHERE ID=?", &r, ProcessID)
 	if err != nil {
-		return nil, err
+		return Process{}, err
 	}
 
 	return ProcessParse(r.Resource)
 }
 
 //获得某个source下所有流程信息
-func GetProcessList(Source string) ([]ProcessDefine, error) {
-	var ProcessDefine []ProcessDefine
+func GetProcessList(Source string) ([]database.ProcDef, error) {
+	var ProcessDefine []database.ProcDef
 	_, err := dao.ExecSQL("select * from proc_def where source=?", &ProcessDefine, Source)
 	return ProcessDefine, err
 }

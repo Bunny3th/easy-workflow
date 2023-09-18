@@ -117,3 +117,13 @@ func (e *MyEvent) MyEvent_TaskForceNodePass(TaskID int, CurrentNode *Node, PrevN
 
 	return nil
 }
+
+func (e *MyEvent) MyEvent_Revoke(ProcessInstanceID int, RevokeUserID string) error {
+	processName, err := GetProcessNameByInstanceID(ProcessInstanceID)
+	if err != nil {
+		return err
+	}
+	log.Printf("--------流程[%s],由[%s]发起撤销--------", processName, RevokeUserID)
+
+	return nil
+}

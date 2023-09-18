@@ -15,21 +15,20 @@ type ProcNodes map[string]Node
 //定义流程cache其结构为 map [ProcID]ProcNodes
 var ProcCache = make(map[int]ProcNodes)
 
-//从缓存中获取流程定义
+//从缓存中获取流程节点定义
 func GetProcCache(ProcessID int) (ProcNodes, error) {
 	if nodes, ok := ProcCache[ProcessID]; ok {
 		return nodes, nil
 	} else {
-		nodes, err := GetProcessDefine(ProcessID)
+		process, err := GetProcessDefine(ProcessID)
 		if err != nil {
 			return nil, err
 		}
 		pn := make(ProcNodes)
-		for _, n := range nodes {
+		for _, n := range process.Nodes {
 			pn[n.NodeID] = n
 		}
 		ProcCache[ProcessID] = pn
-
 	}
 	return ProcCache[ProcessID], nil
 }
@@ -43,11 +42,9 @@ func InstanceInit(ProcessID int, BusinessID string, VariableJson string) (int, N
 	}
 
 	//检查流程节点中的事件是否都已经注册
-	for _, node := range nodes {
-		err = CheckIfEventRegistered(node)
-		if err != nil {
-			return 0, Node{}, err
-		}
+	err = VerifyEvents(ProcessID, nodes)
+	if err != nil {
+		return 0, Node{}, err
 	}
 
 	//获取流程开始节点ID
@@ -115,8 +112,11 @@ func InstanceStart(ProcessID int, BusinessID string, Comment string, VariablesJs
 	return InstanceID, nil
 }
 
-//撤销流程实例 参数说明:InstanceID 实例ID,Force 是否强制撤销，若为false,则只有流程回到发起人这里才能撤销
-func InstanceRevoke(ProcessInstanceID int, Force bool) error {
+//撤销流程实例 参数说明:
+//1、InstanceID 实例ID
+//2、Force 是否强制撤销，若为false,则只有流程回到发起人这里才能撤销
+//3、撤销发起人用户ID
+func InstanceRevoke(ProcessInstanceID int, Force bool,RevokeUserID string) error {
 	if !Force {
 		//这段SQL判断是否当前Node就是开始Node
 		sql := "SELECT a.id FROM proc_inst a " +
@@ -131,8 +131,27 @@ func InstanceRevoke(ProcessInstanceID int, Force bool) error {
 			return errors.New("当前流程所在节点不是发起节点，无法撤销!")
 		}
 	}
+
+	//-----------------------------执行流程撤销事件 start-----------------------------
+	//流程ID
+	ProcID,err:=GetProcessIDByInstanceID(ProcessInstanceID)
+	if err!=nil{
+		return err
+	}
+	//流程定义
+	process,err:=GetProcessDefine(ProcID)
+	if err!=nil{
+		return err
+	}
+
+	err=RunProcEvents(process.RevokeEvents,ProcessInstanceID,RevokeUserID)
+	if err!=nil{
+		return err
+	}
+	//-----------------------------执行流程撤销事件 end-----------------------------
+
 	//调用EndNodeHandle,做数据清理归档
-	err := EndNodeHandle(ProcessInstanceID, 2)
+	err = EndNodeHandle(ProcessInstanceID, 2)
 	return err
 }
 

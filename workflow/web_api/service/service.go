@@ -49,20 +49,16 @@ swagger注解描述 https://github.com/swaggo/swag/blob/master/README_zh-CN.md
 // @Description
 // @Tags         流程定义
 // @Produce      json
-// @Param        ProcessName  formData string  true  "流程名称" example(员工请假)
 // @Param        Resource  formData string  true  "流程定义资源(json)" example(json字符串)
 // @Param        CreateUserID  formData string  true  "创建者ID" example(0001)
-// @Param        Source  formData string  true  "来源" example(办公系统)
 // @Success      200  {object}  int 流程ID
 // @Failure      400  {object}  string 报错信息
 // @Router       /def/save [post]
 func ProcDef_Save(c *gin.Context) {
-	ProcessName := c.PostForm("ProcessName")
 	Resource := c.PostForm("Resource")
 	CreateUserID := c.PostForm("CreateUserID")
-	Source := c.PostForm("Source")
 
-	if ProcID, err := ProcessSave(ProcessName, Resource, CreateUserID, Source); err == nil {
+	if ProcID, err := ProcessSave(Resource, CreateUserID); err == nil {
 		c.JSON(http.StatusOK, ProcID)
 	} else {
 		c.JSON(400, err.Error())
@@ -74,7 +70,7 @@ func ProcDef_Save(c *gin.Context) {
 // @Tags         流程定义
 // @Produce      json
 // @Param        source  query string  true  "来源" example(办公系统)
-// @Success      200  {object}  []model.ProcessDefine 流程定义列表
+// @Success      200  {object}  []database.ProcDef 流程定义列表
 // @Failure      400  {object}  string 报错信息
 // @Router       /def/list [get]
 func ProcDef_ListBySource(c *gin.Context) {
@@ -139,6 +135,7 @@ func ProcInst_Start(c *gin.Context) {
 // @Tags         流程实例
 // @Produce      json
 // @Param        InstanceID  formData int  true  "流程实例ID" example(1)
+// @Param        RevokeUserID  formData string  true  "撤销发起用户ID" example("U001")
 // @Param        Force  formData bool  true  "是否强制撤销" example("false")
 // @Success      200  {object}  string "ok"
 // @Failure      400  {object}  string 报错信息
@@ -148,12 +145,15 @@ func ProcInst_Revoke(c *gin.Context) {
 	if err != nil {
 		c.AbortWithStatusJSON(400, err.Error())
 	}
+
+	RevokeUserID:=c.PostForm("RevokeUserID")
+
 	Force, err := strconv.ParseBool(c.PostForm("Force"))
 	if err != nil {
 		c.AbortWithStatusJSON(400, err.Error())
 	}
 
-	if err := InstanceRevoke(InstanceID, Force); err == nil {
+	if err := InstanceRevoke(InstanceID, Force,RevokeUserID); err == nil {
 		c.JSON(200, "ok")
 	} else {
 		c.JSON(400, err.Error())

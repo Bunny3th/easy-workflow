@@ -99,8 +99,10 @@ func CreateProcessJson() (string, error) {
 	Nodelist = append(Nodelist, Node8)
 	Nodelist = append(Nodelist, Node9)
 
+	process:=Process{ProcessName: "员工请假",Source: "办公系统",RevokeEvents: []string{"MyEvent_Revoke"},Nodes: Nodelist}
+
 	//转化为json
-	j, err := JSONMarshal(Nodelist, false)
+	j, err := JSONMarshal(process, false)
 
 	return string(j), err
 }
@@ -113,7 +115,7 @@ func CreateExampleProcess(){
 	}
 
 	//保存流程
-	id, err := ProcessSave("员工请假", string(j), "001", "办公系统")
+	id, err := ProcessSave(j,"system")
 	if err != nil {
 		log.Fatal(err)
 	}
