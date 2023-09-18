@@ -1,7 +1,6 @@
 package engine
 
 import (
-	"encoding/json"
 	"errors"
 	"github.com/Bunny3th/easy-workflow/workflow/dao"
 	"strings"
@@ -41,25 +40,6 @@ func SetVariable(ProcessInstanceID int, variable string) (string, bool, error) {
 		return "", false, err
 	}
 }
-
-//将变量map生成kv对形式的json字符串，以便存入数据库
-//此方法暂时无用
-func VariablesMap2Json(Variables map[string]string) (string, error) {
-	type kv struct {
-		Key   string
-		Value string
-	}
-	var kvs []kv
-	for k, v := range Variables {
-		kvs = append(kvs, kv{Key: k, Value: v})
-	}
-	j, err := json.Marshal(kvs)
-	if err != nil {
-		return "", err
-	}
-	return string(j), nil
-}
-
 
 //解析变量,获取并设置其value,返回map(注意，如果不是变量，则原样存储在map中)
 func ResolveVariables(ProcessInstanceID int, Variables []string) (map[string]string, error) {

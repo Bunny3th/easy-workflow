@@ -157,10 +157,6 @@ func InstanceRevoke(ProcessInstanceID int, Force bool,RevokeUserID string) error
 
 //流程实例变量存入数据库
 func InstanceVariablesSave(ProcessInstanceID int, VariablesJson string) error {
-	type Variable struct {
-		Key   string
-		Value string
-	}
 	//获取变量数组
 	var variables []Variable
 	Json2Struct(VariablesJson, &variables)
