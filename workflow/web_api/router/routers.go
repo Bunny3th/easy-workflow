@@ -27,6 +27,7 @@ func NewRouter(engine *gin.Engine, ApiBasePath string, ShowSwaggerDoc bool, Swag
 	router.GET("/def/get", ProcDef_GetProcDefByID)
 
 	router.POST("/inst/start", ProcInst_Start)
+	router.GET("/inst/start/by", ProcInst_StartByUser)
 	router.POST("/inst/revoke", ProcInst_Revoke)
 	router.GET("/inst/task_history", ProcInst_TaskHistory)
 

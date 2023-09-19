@@ -34,7 +34,7 @@ func GetProcCache(ProcessID int) (ProcNodes, error) {
 }
 
 //1、流程实例初始化 2、保存实例变量 返回:流程实例ID、开始节点
-func InstanceInit(ProcessID int, BusinessID string, VariableJson string) (int, Node, error) {
+func instanceInit(ProcessID int, BusinessID string, VariableJson string) (int, Node, error) {
 	//获取流程定义(流程中所有node)
 	nodes, err := GetProcCache(ProcessID)
 	if err != nil {
@@ -117,13 +117,13 @@ func InstanceInit(ProcessID int, BusinessID string, VariableJson string) (int, N
 //开始流程实例 返回流程实例ID
 func InstanceStart(ProcessID int, BusinessID string, Comment string, VariablesJson string) (int, error) {
 	//实例初始化
-	InstanceID, StartNode, err := InstanceInit(ProcessID, BusinessID, VariablesJson)
+	InstanceID, StartNode, err := instanceInit(ProcessID, BusinessID, VariablesJson)
 	if err != nil {
 		return 0, err
 	}
 
 	//开始节点处理
-	err = StartNodeHandle(InstanceID, &StartNode, Comment, VariablesJson)
+	err = startNodeHandle(InstanceID, &StartNode, Comment, VariablesJson)
 	if err != nil {
 		return InstanceID, err
 	}
@@ -215,10 +215,41 @@ func InstanceVariablesSave(ProcessInstanceID int, VariablesJson string) error {
 //获取流程实例信息
 func GetInstanceInfo(ProcessInstanceID int) (database.ProcInst, error) {
 	var procInst database.ProcInst
-	_, err := dao.ExecSQL("SELECT * FROM proc_inst WHERE id=?", &procInst, ProcessInstanceID)
+	//历史信息也要兼顾
+	sql:="SELECT id,proc_id,proc_version,business_id,starter,current_node_id,\n" +
+		"create_time,`status`\n" +
+		"FROM proc_inst \n" +
+		"WHERE id=?\n" +
+		"UNION ALL\n" +
+		"SELECT proc_inst_id AS id,proc_id,proc_version,business_id,starter,current_node_id,\n" +
+		"create_time,`status` \n" +
+		"FROM hist_proc_inst \n" +
+		"WHERE proc_inst_id=?"
+	_, err := dao.ExecSQL(sql, &procInst, ProcessInstanceID,ProcessInstanceID)
 	if err != nil {
 		return procInst, err
 	}
 
 	return procInst, nil
+}
+
+//获取起始人为特定用户的实例
+func GetInstanceStartByUser(UserID string) ([]database.ProcInst,error){
+	var procInsts []database.ProcInst
+	//历史信息也要兼顾
+	sql:="SELECT id,proc_id,proc_version,business_id,starter,current_node_id,\n" +
+		"create_time,`status`\n" +
+		"FROM proc_inst \n" +
+		"WHERE starter=?\n" +
+		"UNION ALL\n" +
+		"SELECT proc_inst_id AS id,proc_id,proc_version,business_id,starter,current_node_id,\n" +
+		"create_time,`status` \n" +
+		"FROM hist_proc_inst \n" +
+		"WHERE starter=?"
+	_, err := dao.ExecSQL(sql, &procInsts, UserID,UserID)
+	if err != nil {
+		return procInsts, err
+	}
+
+	return procInsts, nil
 }

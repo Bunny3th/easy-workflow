@@ -180,6 +180,25 @@ func ProcInst_TaskHistory(c *gin.Context) {
 	}
 }
 
+// @Summary      获取起始人为特定用户的流程实例
+// @Description
+// @Tags         流程实例
+// @Produce      json
+// @Param        userid  query string  true  "用户ID" example("U001")
+// @Success      200  {object}  []database.ProcInst "流程实例列表"
+// @Failure      400  {object}  string 报错信息
+// @Router       /inst/start/by [get]
+func ProcInst_StartByUser(c *gin.Context) {
+	UserID:=c.Query("userid")
+
+	if insts,err:=GetInstanceStartByUser(UserID);err==nil{
+		c.JSON(200,insts)
+	}else{
+		c.JSON(400,err.Error())
+	}
+}
+
+
 // @Summary      任务通过
 // @Description  任务通过后根据流程定义，进入下一个节点进行处理
 // @Tags         任务

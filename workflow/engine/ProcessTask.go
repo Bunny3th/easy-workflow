@@ -7,7 +7,6 @@ import (
 	. "github.com/Bunny3th/easy-workflow/workflow/dao"
 	"github.com/Bunny3th/easy-workflow/workflow/database"
 	. "github.com/Bunny3th/easy-workflow/workflow/model"
-	"time"
 )
 
 //生成任务 返回生成的任务ID数组
@@ -280,9 +279,9 @@ func GetTaskInfo(TaskID int) (Task, error) {
 		")\n\n" +
 		"SELECT a.id,a.proc_id,b.name,a.proc_inst_id,a.business_id,a.starter,a.node_id,a.node_name,a.prev_node_id,a.is_cosigned,\n" +
 		"a.batch_code,a.user_id,a.`status` ,a.is_finished,a.`comment`,\n" +
-		"DATE_FORMAT(a.proc_inst_create_time,'%Y-%m-%d %T') as proc_inst_create_time,\n"+
-		"DATE_FORMAT(a.create_time,'%Y-%m-%d %T') AS create_time,\n" +
-		"DATE_FORMAT(a.finished_time,'%Y-%m-%d %T') AS finished_time\n" +
+		"a.proc_inst_create_time,\n"+
+		"a.create_time,\n" +
+		"a.finished_time\n" +
 		"FROM tmp_task a\n" +
 		"LEFT JOIN `proc_def` b ON a.proc_id=b.id;"
 
@@ -303,9 +302,9 @@ func GetTaskToDoList(UserID string) ([]Task, error) {
 	sql := "SELECT a.id,a.proc_id,b.name,a.proc_inst_id,\n" +
 		"a.business_id,a.starter,a.node_id,a.node_name,a.prev_node_id,\n" +
 		"a.is_cosigned,a.batch_code,a.user_id,a.`status` ,a.is_finished,a.`comment`,\n" +
-		"DATE_FORMAT(a.proc_inst_create_time,'%Y-%m-%d %T') as proc_inst_create_time,\n"+
-		"DATE_FORMAT(a.create_time,'%Y-%m-%d %T') AS create_time,\n" +
-		"DATE_FORMAT(a.finished_time,'%Y-%m-%d %T') AS finished_time\n" +
+		"a.proc_inst_create_time,\n"+
+		"a.create_time,\n" +
+		"a.finished_time\n" +
 		"FROM proc_task a\n" +
 		"LEFT JOIN `proc_def` b ON a.proc_id=b.id\n" +
 		"WHERE a.user_id=? AND a.is_finished=0 ORDER BY a.id;"
@@ -331,9 +330,9 @@ func GetTaskFinishedList(UserID string) ([]Task, error) {
 		")\n\n" +
 		"SELECT a.id,a.proc_id,b.name,a.proc_inst_id,a.business_id,a.starter,a.node_id,a.node_name,a.prev_node_id,a.is_cosigned,\n" +
 		"a.batch_code,a.user_id,a.`status` ,a.is_finished,a.`comment`,\n" +
-		"DATE_FORMAT(a.proc_inst_create_time,'%Y-%m-%d %T') as proc_inst_create_time,\n"+
-		"DATE_FORMAT(a.create_time,'%Y-%m-%d %T') AS create_time,\n" +
-		"DATE_FORMAT(a.finished_time,'%Y-%m-%d %T') AS finished_time  \n" +
+		"a.proc_inst_create_time,\n"+
+		"a.create_time,\n" +
+		"a.finished_time  \n" +
 		"FROM tmp_task a\n" +
 		"LEFT JOIN `proc_def` b ON a.proc_id=b.id\n" +
 		"WHERE  a.is_finished=1 AND " +
@@ -422,9 +421,9 @@ func GetInstanceTaskHistory(ProcessInstanceID int) ([]Task, error) {
 		")\n\n" +
 		"SELECT a.id,a.proc_id,b.name,a.proc_inst_id,a.business_id,a.starter,a.node_id,a.node_name,a.prev_node_id,a.is_cosigned,\n" +
 		"a.batch_code,a.user_id,a.`status` ,a.is_finished,a.`comment`,\n" +
-		"DATE_FORMAT(a.proc_inst_create_time,'%Y-%m-%d %T') as proc_inst_create_time,\n"+
-		"DATE_FORMAT(a.create_time,'%Y-%m-%d %T') AS create_time,\n" +
-		"DATE_FORMAT(a.finished_time,'%Y-%m-%d %T') AS finished_time\n" +
+		"a.proc_inst_create_time,\n"+
+		"a.create_time,\n" +
+		"a.finished_time\n" +
 		"FROM tmp_task a\n" +
 		"LEFT JOIN `proc_def` b ON a.proc_id=b.id;"
 	_, err := ExecSQL(sql, &tasklist, ProcessInstanceID, ProcessInstanceID)
@@ -560,7 +559,7 @@ func taskSubmitSave(TaskID int, Comment string, VariableJson string, Status int)
 
 	//更新task表记录
 	result := tx.Model(&database.ProcTask{}).Where("id=?", taskInfo.TaskID).
-		Updates(database.ProcTask{Status: Status, IsFinished: 1, Comment: Comment,FinishedTime: time.Now()})
+		Updates(database.ProcTask{Status: Status, IsFinished: 1, Comment: Comment,FinishedTime: database.LTime.Now()})
 	if result.Error != nil {
 		tx.Rollback()
 		return result.Error
@@ -570,7 +569,7 @@ func taskSubmitSave(TaskID int, Comment string, VariableJson string, Status int)
 	//2、不论是否会签，都是一人驳回即驳回，所以需要把同一批次task的isfinish设置为1,让其他人不用再处理
 	if (taskInfo.IsCosigned == 0 && Status == 1) || Status == 2 {
 		result = tx.Model(&database.ProcTask{}).Where("batch_code=?", taskInfo.BatchCode).
-			Updates(database.ProcTask{IsFinished: 1, FinishedTime: time.Now()})
+			Updates(database.ProcTask{IsFinished: 1, FinishedTime: database.LTime.Now()})
 		if result.Error != nil {
 			tx.Rollback()
 			return result.Error

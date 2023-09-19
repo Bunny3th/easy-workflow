@@ -41,6 +41,33 @@ definitions:
         description: 0:等于包含网关，只要上级节点有一个完成，就可以往下走   1:等于并行网关，必须要上级节点全部完成才能往下走
         type: integer
     type: object
+  model.Instance:
+    properties:
+      businessID:
+        description: 业务ID
+        type: string
+      createTime:
+        description: 创建时间
+        type: string
+      currentNodeID:
+        description: 当前进行节点ID
+        type: string
+      id:
+        description: 流程实例ID
+        type: integer
+      procID:
+        description: 流程ID
+        type: integer
+      procVersion:
+        description: 流程版本号
+        type: integer
+      starter:
+        description: 流程发起人用户ID
+        type: string
+      status:
+        description: 0:未完成(审批中) 1:已完成(通过) 2:撤销
+        type: integer
+    type: object
   model.Node:
     properties:
       gwconfig:
@@ -120,7 +147,7 @@ definitions:
         description: 评论意见
         type: string
       createTime:
-        description: 系统创建任务时间
+        description: 任务创建时间
         type: string
       finishedTime:
         description: 处理任务时间
@@ -143,11 +170,17 @@ definitions:
       procID:
         description: 流程ID
         type: integer
+      procInstCreateTime:
+        description: 流程实例创建时间
+        type: string
       procInstID:
         description: 流程实例ID
         type: integer
       procName:
         description: 流程名称
+        type: string
+      starter:
+        description: 流程起始人
         type: string
       status:
         description: 任务状态:0:初始 1:通过 2:驳回
@@ -331,6 +364,31 @@ paths:
           schema:
             type: string
       summary: 开始流程
+      tags:
+      - 流程实例
+  /inst/start/by:
+    get:
+      parameters:
+      - description: 用户ID
+        example: '"U001"'
+        in: query
+        name: userid
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 流程实例列表
+          schema:
+            items:
+              $ref: '#/definitions/model.Instance'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+      summary: 获取起始人为特定用户的流程实例
       tags:
       - 流程实例
   /inst/task_history:

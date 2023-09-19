@@ -53,7 +53,7 @@ func ProcessNode(ProcessInstanceID int, CurrentNode *Node, PrevNode Node) error 
 //开始节点处理 开始节点是一个特殊的任务节点，其特殊点在于:
 //1、在生成流程实例的同时，就要运行开始节点
 //2、开始节点生成的任务自动完成，而后自动进行下一个节点的处理
-func StartNodeHandle(ProcessInstanceID int, StartNode *Node, Comment string, VariableJson string) error {
+func startNodeHandle(ProcessInstanceID int, StartNode *Node, Comment string, VariableJson string) error {
 	if StartNode.NodeType != RootNode {
 		return errors.New("不是开始节点，无法处理节点:" + StartNode.NodeName)
 	}

@@ -8,7 +8,6 @@ import (
 	. "github.com/Bunny3th/easy-workflow/workflow/model"
 	"github.com/Bunny3th/easy-workflow/workflow/util"
 	"gorm.io/gorm"
-	"time"
 )
 
 //流程定义解析(json->struct)
@@ -35,9 +34,6 @@ func ProcessSave(Resource string, CreateUserID string) (int, error) {
 		return 0, errors.New("流程名称、来源、创建人ID不能为空")
 	}
 
-	//解析node之间的关系，流程节点执行关系定义记录
-	Execution := Nodes2Execution(process.Nodes)
-
 	//首先判断此工作流是否已定义
 	ProcID, Version, err := GetProcessIDByProcessName(dao.DB, process.ProcessName, process.Source)
 	if err != nil {
@@ -59,7 +55,7 @@ func ProcessSave(Resource string, CreateUserID string) (int, error) {
 		//而后更新现有定义
 		result = tx.Model(&database.ProcDef{}).
 			Where("name=? AND source=?", process.ProcessName, process.Source).
-			Updates(database.ProcDef{Version: Version + 1, Resource: Resource, UserID: CreateUserID, CreatTime: time.Now()})
+			Updates(database.ProcDef{Version: Version + 1, Resource: Resource, UserID: CreateUserID, CreatTime: database.LTime.Now()})
 		if result.Error != nil {
 			tx.Rollback()
 			return 0, result.Error
@@ -97,21 +93,11 @@ func ProcessSave(Resource string, CreateUserID string) (int, error) {
 		return 0, result.Error
 	}
 
-	//将新的Execution定义插入proc_execution表
-	var procExecution []database.ProcExecution
-	for _, e := range Execution {
-		procExecution = append(procExecution, database.ProcExecution{
-			ProcID:      ProcID,
-			ProcVersion: Version,
-			NodeID:      e.NodeID,
-			NodeName:    e.NodeName,
-			PrevNodeID:  e.PrevNodeID,
-			NodeType:    e.NodeType,
-			IsCosigned:  e.IsCosigned,
-		})
-	}
+	//解析node之间的关系，流程节点执行关系定义记录
+	Execution := nodes2Execution(ProcID,Version,process.Nodes)
 
-	result = tx.Create(&procExecution)
+	//将Execution定义插入proc_execution表
+	result = tx.Create(&Execution)
 	if result.Error != nil {
 		tx.Rollback()
 		return 0, result.Error
@@ -127,8 +113,8 @@ func ProcessSave(Resource string, CreateUserID string) (int, error) {
 }
 
 //将Node转为可被数据库表记录的执行步骤。节点的PrevNodeID可能是n个，则在数据库表中需要存n行
-func Nodes2Execution(nodes []Node) []Execution {
-	var executions []Execution
+func nodes2Execution(ProcID int,ProcVersion int, nodes []Node) []database.ProcExecution{
+	var executions []database.ProcExecution
 	for _, n := range nodes {
 		if len(n.PrevNodeIDs) <= 1 { //上级节点数<=1的情况下
 			var PrevNodeID string
@@ -137,21 +123,27 @@ func Nodes2Execution(nodes []Node) []Execution {
 			} else {
 				PrevNodeID = n.PrevNodeIDs[0]
 			}
-			executions = append(executions, Execution{
+			executions = append(executions, database.ProcExecution{
+				ProcID: ProcID,
+				ProcVersion: ProcVersion,
 				NodeID:     n.NodeID,
 				NodeName:   n.NodeName,
-				PrevNodeID: PrevNodeID,
+				PrevNodeID: &PrevNodeID,
 				NodeType:   int(n.NodeType),
 				IsCosigned: int(n.IsCosigned),
+				CreateTime: database.LTime.Now(),
 			})
 		} else { //上级节点>1的情况下，则每一个上级节点都要生成一行
 			for _, prev := range n.PrevNodeIDs {
-				executions = append(executions, Execution{
+				executions = append(executions, database.ProcExecution{
+					ProcID: ProcID,
+					ProcVersion: ProcVersion,
 					NodeID:     n.NodeID,
 					NodeName:   n.NodeName,
-					PrevNodeID: prev,
+					PrevNodeID: &prev,
 					NodeType:   int(n.NodeType),
 					IsCosigned: int(n.IsCosigned),
+					CreateTime: database.LTime.Now(),
 				})
 			}
 		}
