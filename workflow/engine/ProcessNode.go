@@ -93,10 +93,12 @@ func EndNodeHandle(ProcessInstanceID int, Status int) error {
 	}
 
 	//将task表中任务归档
-	result = tx.Exec("INSERT INTO hist_proc_task(task_id,proc_id,proc_inst_id,business_id,node_id,node_name,prev_node_id,is_cosigned,\n"+
-		"batch_code,user_id,`status`,is_finished,`comment`,create_time,finished_time)\n "+
-		"SELECT id,proc_id,proc_inst_id,business_id,node_id,node_name,prev_node_id,is_cosigned,batch_code,user_id,`status`,\n"+
-		"is_finished,`comment`,create_time,finished_time \n"+
+	result = tx.Exec("INSERT INTO hist_proc_task(task_id,proc_id,proc_inst_id,\n" +
+		"business_id,starter,node_id,node_name,prev_node_id,is_cosigned,\n"+
+		"batch_code,user_id,`status`,is_finished,`comment`,proc_inst_create_time,create_time,finished_time)\n "+
+		"SELECT id,proc_id,proc_inst_id,business_id,starter,\n" +
+		"node_id,node_name,prev_node_id,is_cosigned,batch_code,user_id,`status`,\n"+
+		"is_finished,`comment`,proc_inst_create_time,create_time,finished_time \n"+
 		"FROM proc_task WHERE proc_inst_id=?;", ProcessInstanceID)
 	if result.Error != nil {
 		tx.Rollback()
@@ -118,8 +120,8 @@ func EndNodeHandle(ProcessInstanceID int, Status int) error {
 	}
 
 	//将proc_inst表中数据归档
-	result = tx.Exec("INSERT INTO hist_proc_inst(proc_inst_id,proc_id,proc_version,business_id,current_node_id,create_time,`status`)\n        "+
-		"SELECT id,proc_id,proc_version,business_id,current_node_id,create_time,`status`\n        "+
+	result = tx.Exec("INSERT INTO hist_proc_inst(proc_inst_id,proc_id,proc_version,business_id,starter,current_node_id,create_time,`status`)\n        "+
+		"SELECT id,proc_id,proc_version,business_id,starter,current_node_id,create_time,`status`\n        "+
 		"FROM proc_inst \n        "+
 		"WHERE id=?; ", ProcessInstanceID)
 	if result.Error != nil {
@@ -156,22 +158,10 @@ func EndNodeHandle(ProcessInstanceID int, Status int) error {
 
 //任务节点处理 返回生成的taskid数组
 func TaskNodeHandle(ProcessInstanceID int, CurrentNode *Node, PrevNode Node) ([]int, error) {
-	//匹配节点用户变量
-	kv, err := ResolveVariables(ProcessInstanceID, CurrentNode.UserIDs)
+	//获取节点用户
+	users,err:=resolveNodeUser(ProcessInstanceID,*CurrentNode)
 	if err != nil {
 		return nil, err
-	}
-
-	//使用map去重，因为有可能某几个变量指向同一个用户，重复的用户会产生重复的任务
-	var usersMap = make(map[string]string)
-	for _, v := range kv {
-		usersMap[v] = ""
-	}
-
-	//生成user数组
-	var users []string
-	for k, _ := range usersMap {
-		users = append(users, k)
 	}
 
 	//如果没有处理人，则任务无法分配
@@ -324,4 +314,29 @@ func InstanceNodeIsFinish(ProcessInstanceID int, NodeID string) (bool, error) {
 	} else {
 		return finished, err
 	}
+}
+
+//解析节点用户
+//1、获得用户变量
+//2、用户去重
+func resolveNodeUser(ProcessInstanceID int,node Node) ([]string,error){
+	//匹配节点用户变量
+	kv, err := ResolveVariables(ProcessInstanceID, node.UserIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	//使用map去重，因为有可能某几个变量指向同一个用户，重复的用户会产生重复的任务
+	var usersMap = make(map[string]string)
+	for _, v := range kv {
+		usersMap[v] = ""
+	}
+
+	//生成user数组
+	var users []string
+	for k, _ := range usersMap {
+		users = append(users, k)
+	}
+
+	return users,nil
 }

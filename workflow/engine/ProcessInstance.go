@@ -89,6 +89,25 @@ func InstanceInit(ProcessID int, BusinessID string, VariableJson string) (int, N
 		return 0, StartNode, err
 	}
 
+	//获取流程起始人
+	users,err:=resolveNodeUser(procInst.ID,StartNode)
+	if err!=nil{
+		tx.Rollback()
+		return 0, StartNode, err
+	}
+
+	if len(users) < 1 {
+		tx.Rollback()
+		return 0,StartNode, errors.New("未指定处理人，无法处理节点:" + StartNode.NodeName)
+	}
+
+	//更新起始人到流程实例表
+	re=tx.Model(&database.ProcInst{}).Where("id=?",procInst.ID).Update("starter",users[0])
+	if re.Error != nil {
+		tx.Rollback()
+		return 0, StartNode, re.Error
+	}
+
 	//关闭事务
 	tx.Commit()
 

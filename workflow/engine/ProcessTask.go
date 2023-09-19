@@ -61,8 +61,8 @@ func CreateTask(ProcessInstanceID int, NodeID string, PrevNodeID string, UserIDs
 	//开始生成数据
 	var tasks []database.ProcTask
 	for _, u := range UserIDs {
-		tasks = append(tasks, database.ProcTask{ProcID: ProcID, ProcInstID: ProcessInstanceID,
-			BusinessID: ProcInstInfo.BusinessID,NodeID: NodeID,NodeName: Node.NodeName,
+		tasks = append(tasks, database.ProcTask{ProcID: ProcID, ProcInstID: ProcessInstanceID,ProcInstCreateTime: ProcInstInfo.CreateTime,
+			BusinessID: ProcInstInfo.BusinessID,Starter: ProcInstInfo.Starter,NodeID: NodeID,NodeName: Node.NodeName,
 			PrevNodeID: PrevNodeID, IsCosigned: Node.IsCosigned, BatchCode: BatchCode, UserID: u})
 	}
 
@@ -151,7 +151,7 @@ func TaskPass(TaskID int, Comment string, VariableJson string, DirectlyToWhoReje
 	}
 
 	//完成任务后的后继处理
-	err = ProcessAfterTaskFinished(TaskID, taskOption{DirectlyToWhoRejectedMe: DirectlyToWhoRejectedMe})
+	err = processAfterTaskFinished(TaskID, taskOption{DirectlyToWhoRejectedMe: DirectlyToWhoRejectedMe})
 	if err != nil {
 		return err
 	}
@@ -188,7 +188,7 @@ func TaskReject(TaskID int, Comment string, VariableJson string) error {
 	}
 
 	//完成任务后的后继处理
-	err = ProcessAfterTaskFinished(TaskID, taskOption{})
+	err = processAfterTaskFinished(TaskID, taskOption{})
 	if err != nil {
 		return err
 	}
@@ -197,7 +197,7 @@ func TaskReject(TaskID int, Comment string, VariableJson string) error {
 }
 
 //任务完成后的处理
-func ProcessAfterTaskFinished(TaskID int, option taskOption) error {
+func processAfterTaskFinished(TaskID int, option taskOption) error {
 	////获取节点信息
 	taskInfo, err := GetTaskInfo(TaskID)
 	if err != nil {
@@ -270,16 +270,17 @@ func ProcessAfterTaskFinished(TaskID int, option taskOption) error {
 func GetTaskInfo(TaskID int) (Task, error) {
 	var task Task
 	sql:="WITH tmp_task AS\n" +
-		"(SELECT id,proc_id, proc_inst_id,business_id,node_id,node_name,prev_node_id,is_cosigned,\n" +
-		"batch_code,user_id,`status` ,is_finished,`comment`,create_time,finished_time \n" +
+		"(SELECT id,proc_id, proc_inst_id,business_id,starter,node_id,node_name,prev_node_id,is_cosigned,\n" +
+		"batch_code,user_id,`status` ,is_finished,`comment`,proc_inst_create_time,create_time,finished_time \n" +
 		"FROM proc_task WHERE id=?\n" +
 		"UNION ALL\n" +
-		"SELECT task_id AS id,proc_id, proc_inst_id,business_id,node_id,node_name,prev_node_id,is_cosigned,\n" +
-		"batch_code,user_id,`status` ,is_finished,`comment`,create_time,finished_time \n" +
+		"SELECT task_id AS id,proc_id, proc_inst_id,business_id,starter,node_id,node_name,prev_node_id,is_cosigned,\n" +
+		"batch_code,user_id,`status` ,is_finished,`comment`,proc_inst_create_time,create_time,finished_time \n" +
 		"FROM hist_proc_task WHERE id=?\n" +
 		")\n\n" +
-		"SELECT a.id,a.proc_id,b.name,a.proc_inst_id,a.business_id,a.node_id,a.node_name,a.prev_node_id,a.is_cosigned,\n" +
+		"SELECT a.id,a.proc_id,b.name,a.proc_inst_id,a.business_id,a.starter,a.node_id,a.node_name,a.prev_node_id,a.is_cosigned,\n" +
 		"a.batch_code,a.user_id,a.`status` ,a.is_finished,a.`comment`,\n" +
+		"DATE_FORMAT(a.proc_inst_create_time,'%Y-%m-%d %T') as proc_inst_create_time,\n"+
 		"DATE_FORMAT(a.create_time,'%Y-%m-%d %T') AS create_time,\n" +
 		"DATE_FORMAT(a.finished_time,'%Y-%m-%d %T') AS finished_time\n" +
 		"FROM tmp_task a\n" +
@@ -299,8 +300,10 @@ func GetTaskInfo(TaskID int) (Task, error) {
 //获取特定用户待办任务列表
 func GetTaskToDoList(UserID string) ([]Task, error) {
 	var tasks []Task
-	sql := "SELECT a.id,a.proc_id,b.name,a.proc_inst_id,a.business_id,a.node_id,a.node_name,a.prev_node_id,\n" +
+	sql := "SELECT a.id,a.proc_id,b.name,a.proc_inst_id,\n" +
+		"a.business_id,a.starter,a.node_id,a.node_name,a.prev_node_id,\n" +
 		"a.is_cosigned,a.batch_code,a.user_id,a.`status` ,a.is_finished,a.`comment`,\n" +
+		"DATE_FORMAT(a.proc_inst_create_time,'%Y-%m-%d %T') as proc_inst_create_time,\n"+
 		"DATE_FORMAT(a.create_time,'%Y-%m-%d %T') AS create_time,\n" +
 		"DATE_FORMAT(a.finished_time,'%Y-%m-%d %T') AS finished_time\n" +
 		"FROM proc_task a\n" +
@@ -318,16 +321,18 @@ func GetTaskToDoList(UserID string) ([]Task, error) {
 func GetTaskFinishedList(UserID string) ([]Task, error) {
 	var tasks []Task
 	sql := "WITH tmp_task AS\n" +
-		"(SELECT id,proc_id, proc_inst_id,business_id,node_id,node_name,prev_node_id,is_cosigned,\n" +
-		"batch_code,user_id,`status` ,is_finished,`comment`,create_time,finished_time \n" +
+		"(SELECT id,proc_id, proc_inst_id,business_id,starter,node_id,node_name,prev_node_id,is_cosigned,\n" +
+		"batch_code,user_id,`status` ,is_finished,`comment`,proc_inst_create_time,create_time,finished_time \n" +
 		"FROM proc_task WHERE user_id=?\n" +
 		"UNION ALL\n" +
-		"SELECT task_id AS id,proc_id, proc_inst_id,business_id,node_id,node_name,prev_node_id,is_cosigned,\n" +
-		"batch_code,user_id,`status` ,is_finished,`comment`,create_time,finished_time \n" +
+		"SELECT task_id AS id,proc_id, proc_inst_id,business_id,starter,node_id,node_name,prev_node_id,is_cosigned,\n" +
+		"batch_code,user_id,`status` ,is_finished,`comment`,proc_inst_create_time,create_time,finished_time \n" +
 		"FROM hist_proc_task WHERE user_id=?\n" +
 		")\n\n" +
-		"SELECT a.id,a.proc_id,b.name,a.proc_inst_id,a.business_id,a.node_id,a.node_name,a.prev_node_id,a.is_cosigned,\n" +
-		"a.batch_code,a.user_id,a.`status` ,a.is_finished,a.`comment`,DATE_FORMAT(a.create_time,'%Y-%m-%d %T') AS create_time,\n" +
+		"SELECT a.id,a.proc_id,b.name,a.proc_inst_id,a.business_id,a.starter,a.node_id,a.node_name,a.prev_node_id,a.is_cosigned,\n" +
+		"a.batch_code,a.user_id,a.`status` ,a.is_finished,a.`comment`,\n" +
+		"DATE_FORMAT(a.proc_inst_create_time,'%Y-%m-%d %T') as proc_inst_create_time,\n"+
+		"DATE_FORMAT(a.create_time,'%Y-%m-%d %T') AS create_time,\n" +
 		"DATE_FORMAT(a.finished_time,'%Y-%m-%d %T') AS finished_time  \n" +
 		"FROM tmp_task a\n" +
 		"LEFT JOIN `proc_def` b ON a.proc_id=b.id\n" +
@@ -407,16 +412,17 @@ func TaskFreeRejectToUpstreamNode(TaskID int, NodeID string, Comment string, Var
 func GetInstanceTaskHistory(ProcessInstanceID int) ([]Task, error) {
 	var tasklist []Task
 	sql := "WITH tmp_task AS\n" +
-		"(SELECT id,proc_id, proc_inst_id,business_id,node_id,node_name,prev_node_id,is_cosigned,\n" +
-		"batch_code,user_id,`status` ,is_finished,`comment`,create_time,finished_time \n" +
+		"(SELECT id,proc_id, proc_inst_id,business_id,starter,node_id,node_name,prev_node_id,is_cosigned,\n" +
+		"batch_code,user_id,`status` ,is_finished,`comment`,proc_inst_create_time,create_time,finished_time \n" +
 		"FROM proc_task WHERE proc_inst_id=?\n" +
 		"UNION ALL\n" +
-		"SELECT task_id AS id,proc_id, proc_inst_id,business_id,node_id,node_name,prev_node_id,is_cosigned,\n" +
-		"batch_code,user_id,`status` ,is_finished,`comment`,create_time,finished_time \n" +
+		"SELECT task_id AS id,proc_id, proc_inst_id,business_id,starter,node_id,node_name,prev_node_id,is_cosigned,\n" +
+		"batch_code,user_id,`status` ,is_finished,`comment`,proc_inst_create_time,create_time,finished_time \n" +
 		"FROM hist_proc_task WHERE proc_inst_id=?\n" +
 		")\n\n" +
-		"SELECT a.id,a.proc_id,b.name,a.proc_inst_id,a.business_id,a.node_id,a.node_name,a.prev_node_id,a.is_cosigned,\n" +
+		"SELECT a.id,a.proc_id,b.name,a.proc_inst_id,a.business_id,a.starter,a.node_id,a.node_name,a.prev_node_id,a.is_cosigned,\n" +
 		"a.batch_code,a.user_id,a.`status` ,a.is_finished,a.`comment`,\n" +
+		"DATE_FORMAT(a.proc_inst_create_time,'%Y-%m-%d %T') as proc_inst_create_time,\n"+
 		"DATE_FORMAT(a.create_time,'%Y-%m-%d %T') AS create_time,\n" +
 		"DATE_FORMAT(a.finished_time,'%Y-%m-%d %T') AS finished_time\n" +
 		"FROM tmp_task a\n" +
