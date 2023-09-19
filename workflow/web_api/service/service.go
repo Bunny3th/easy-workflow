@@ -146,14 +146,14 @@ func ProcInst_Revoke(c *gin.Context) {
 		c.AbortWithStatusJSON(400, err.Error())
 	}
 
-	RevokeUserID:=c.PostForm("RevokeUserID")
+	RevokeUserID := c.PostForm("RevokeUserID")
 
 	Force, err := strconv.ParseBool(c.PostForm("Force"))
 	if err != nil {
 		c.AbortWithStatusJSON(400, err.Error())
 	}
 
-	if err := InstanceRevoke(InstanceID, Force,RevokeUserID); err == nil {
+	if err := InstanceRevoke(InstanceID, Force, RevokeUserID); err == nil {
 		c.JSON(200, "ok")
 	} else {
 		c.JSON(400, err.Error())
@@ -185,19 +185,28 @@ func ProcInst_TaskHistory(c *gin.Context) {
 // @Tags         流程实例
 // @Produce      json
 // @Param        userid  query string  true  "用户ID" example("U001")
+// @Param        idx  query int  true  "分页用,开始index" example(0)
+// @Param        rows  query int  true  "分页用,最大返回行数" example(0)
 // @Success      200  {object}  []database.ProcInst "流程实例列表"
 // @Failure      400  {object}  string 报错信息
 // @Router       /inst/start/by [get]
 func ProcInst_StartByUser(c *gin.Context) {
-	UserID:=c.Query("userid")
+	UserID := c.Query("userid")
+	StartIndex, err := strconv.Atoi(c.Query("idx"))
+	if err != nil {
+		c.AbortWithStatusJSON(400, err.Error())
+	}
+	MaxRow, err := strconv.Atoi(c.Query("rows"))
+	if err != nil {
+		c.AbortWithStatusJSON(400, err.Error())
+	}
 
-	if insts,err:=GetInstanceStartByUser(UserID);err==nil{
-		c.JSON(200,insts)
-	}else{
-		c.JSON(400,err.Error())
+	if insts, err := GetInstanceStartByUser(UserID,StartIndex,MaxRow); err == nil {
+		c.JSON(200, insts)
+	} else {
+		c.JSON(400, err.Error())
 	}
 }
-
 
 // @Summary      任务通过
 // @Description  任务通过后根据流程定义，进入下一个节点进行处理
@@ -279,12 +288,23 @@ func Task_Reject(c *gin.Context) {
 // @Tags         任务
 // @Produce      json
 // @Param        userid  query string  true  "用户ID" example("U001")
+// @Param        idx  query int  true  "分页用,开始index" example(0)
+// @Param        rows  query int  true  "分页用,最大返回行数" example(0)
 // @Success      200  {object}  []model.Task 任务数组
 // @Failure      400  {object}  string 报错信息
 // @Router       /task/todo [get]
 func Task_ToDoList(c *gin.Context) {
 	UserID := c.Query("userid")
-	if tasks, err := GetTaskToDoList(UserID); err == nil {
+	StartIndex, err := strconv.Atoi(c.Query("idx"))
+	if err != nil {
+		c.AbortWithStatusJSON(400, err.Error())
+	}
+	MaxRow, err := strconv.Atoi(c.Query("rows"))
+	if err != nil {
+		c.AbortWithStatusJSON(400, err.Error())
+	}
+
+	if tasks, err := GetTaskToDoList(UserID, StartIndex, MaxRow); err == nil {
 		c.JSON(200, tasks)
 	} else {
 		c.JSON(400, err.Error())
@@ -296,12 +316,22 @@ func Task_ToDoList(c *gin.Context) {
 // @Tags         任务
 // @Produce      json
 // @Param        userid  query string  true  "用户ID" example("U001")
+// @Param        idx  query int  true  "分页用,开始index" example(0)
+// @Param        rows  query int  true  "分页用,最大返回行数" example(0)
 // @Success      200  {object}  []model.Task 任务数组
 // @Failure      400  {object}  string 报错信息
 // @Router       /task/finished [get]
 func Task_FinishedList(c *gin.Context) {
 	UserID := c.Query("userid")
-	if tasks, err := GetTaskFinishedList(UserID); err == nil {
+	StartIndex, err := strconv.Atoi(c.Query("idx"))
+	if err != nil {
+		c.AbortWithStatusJSON(400, err.Error())
+	}
+	MaxRow, err := strconv.Atoi(c.Query("rows"))
+	if err != nil {
+		c.AbortWithStatusJSON(400, err.Error())
+	}
+	if tasks, err := GetTaskFinishedList(UserID,StartIndex,MaxRow); err == nil {
 		c.JSON(200, tasks)
 	} else {
 		c.JSON(400, err.Error())
@@ -386,13 +416,13 @@ func Task_WhatCanIDo(c *gin.Context) {
 // @Failure      400  {object}  string 报错信息
 // @Router       /task/info [get]
 func Task_Info(c *gin.Context) {
-	TaskID,err:=strconv.Atoi(c.Query("taskid"))
+	TaskID, err := strconv.Atoi(c.Query("taskid"))
 	if err != nil {
 		c.AbortWithStatusJSON(400, err.Error())
 	}
-	if taskInfo,err:=GetTaskInfo(TaskID);err==nil{
-		c.JSON(200,taskInfo)
-	}else{
+	if taskInfo, err := GetTaskInfo(TaskID); err == nil {
+		c.JSON(200, taskInfo)
+	} else {
 		c.JSON(400, err.Error())
 	}
 }

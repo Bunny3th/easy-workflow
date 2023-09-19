@@ -16,32 +16,7 @@ definitions:
       version:
         type: integer
     type: object
-  model.Condition:
-    properties:
-      expression:
-        description: 条件表达式
-        type: string
-      nodeID:
-        description: 满足条件后转跳到哪个节点
-        type: string
-    type: object
-  model.HybridGateway:
-    properties:
-      conditions:
-        description: 条件判断节点
-        items:
-          $ref: '#/definitions/model.Condition'
-        type: array
-      inevitableNodes:
-        description: 必然执行的节点
-        items:
-          type: string
-        type: array
-      waitForAllPrevNode:
-        description: 0:等于包含网关，只要上级节点有一个完成，就可以往下走   1:等于并行网关，必须要上级节点全部完成才能往下走
-        type: integer
-    type: object
-  model.Instance:
+  database.ProcInst:
     properties:
       businessID:
         description: 业务ID
@@ -66,6 +41,31 @@ definitions:
         type: string
       status:
         description: 0:未完成(审批中) 1:已完成(通过) 2:撤销
+        type: integer
+    type: object
+  model.Condition:
+    properties:
+      expression:
+        description: 条件表达式
+        type: string
+      nodeID:
+        description: 满足条件后转跳到哪个节点
+        type: string
+    type: object
+  model.HybridGateway:
+    properties:
+      conditions:
+        description: 条件判断节点
+        items:
+          $ref: '#/definitions/model.Condition'
+        type: array
+      inevitableNodes:
+        description: 必然执行的节点
+        items:
+          type: string
+        type: array
+      waitForAllPrevNode:
+        description: 0:等于包含网关，只要上级节点有一个完成，就可以往下走   1:等于并行网关，必须要上级节点全部完成才能往下走
         type: integer
     type: object
   model.Node:
@@ -375,6 +375,18 @@ paths:
         name: userid
         required: true
         type: string
+      - description: 分页用,开始index
+        example: 0
+        in: query
+        name: idx
+        required: true
+        type: integer
+      - description: 分页用,最大返回行数
+        example: 0
+        in: query
+        name: rows
+        required: true
+        type: integer
       produces:
       - application/json
       responses:
@@ -382,7 +394,7 @@ paths:
           description: 流程实例列表
           schema:
             items:
-              $ref: '#/definitions/model.Instance'
+              $ref: '#/definitions/database.ProcInst'
             type: array
         "400":
           description: Bad Request
@@ -450,6 +462,18 @@ paths:
         name: userid
         required: true
         type: string
+      - description: 分页用,开始index
+        example: 0
+        in: query
+        name: idx
+        required: true
+        type: integer
+      - description: 分页用,最大返回行数
+        example: 0
+        in: query
+        name: rows
+        required: true
+        type: integer
       produces:
       - application/json
       responses:
@@ -639,6 +663,18 @@ paths:
         name: userid
         required: true
         type: string
+      - description: 分页用,开始index
+        example: 0
+        in: query
+        name: idx
+        required: true
+        type: integer
+      - description: 分页用,最大返回行数
+        example: 0
+        in: query
+        name: rows
+        required: true
+        type: integer
       produces:
       - application/json
       responses:

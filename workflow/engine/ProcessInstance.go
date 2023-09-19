@@ -233,11 +233,15 @@ func GetInstanceInfo(ProcessInstanceID int) (database.ProcInst, error) {
 	return procInst, nil
 }
 
-//获取起始人为特定用户的实例
-func GetInstanceStartByUser(UserID string) ([]database.ProcInst,error){
+//获取起始人为特定用户的实例。参数说明：
+////UserID:用户ID
+////StartIndex:分页用,开始index
+////MaxRows:分页用,最大返回行数
+func GetInstanceStartByUser(UserID string,StartIndex int,MaxRows int) ([]database.ProcInst,error){
 	var procInsts []database.ProcInst
 	//历史信息也要兼顾
-	sql:="SELECT id,proc_id,proc_version,business_id,starter,current_node_id,\n" +
+	sql:="WITH tmp_procinst AS\n " +
+		"(SELECT id,proc_id,proc_version,business_id,starter,current_node_id,\n" +
 		"create_time,`status`\n" +
 		"FROM proc_inst \n" +
 		"WHERE starter=?\n" +
@@ -245,8 +249,9 @@ func GetInstanceStartByUser(UserID string) ([]database.ProcInst,error){
 		"SELECT proc_inst_id AS id,proc_id,proc_version,business_id,starter,current_node_id,\n" +
 		"create_time,`status` \n" +
 		"FROM hist_proc_inst \n" +
-		"WHERE starter=?"
-	_, err := dao.ExecSQL(sql, &procInsts, UserID,UserID)
+		"WHERE starter=?)\n" +
+		"SELECT * FROM tmp_procinst ORDER BY id limit ?,?"
+	_, err := dao.ExecSQL(sql, &procInsts, UserID,UserID,StartIndex,MaxRows)
 	if err != nil {
 		return procInsts, err
 	}

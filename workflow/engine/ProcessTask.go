@@ -296,8 +296,11 @@ func GetTaskInfo(TaskID int) (Task, error) {
 	return task, nil
 }
 
-//获取特定用户待办任务列表
-func GetTaskToDoList(UserID string) ([]Task, error) {
+//获取特定用户待办任务列表。参数说明：
+//UserID:用户ID
+//StartIndex:分页用,开始index
+//MaxRows:分页用,最大返回行数
+func GetTaskToDoList(UserID string,StartIndex int,MaxRows int) ([]Task, error) {
 	var tasks []Task
 	sql := "SELECT a.id,a.proc_id,b.name,a.proc_inst_id,\n" +
 		"a.business_id,a.starter,a.node_id,a.node_name,a.prev_node_id,\n" +
@@ -307,17 +310,21 @@ func GetTaskToDoList(UserID string) ([]Task, error) {
 		"a.finished_time\n" +
 		"FROM proc_task a\n" +
 		"LEFT JOIN `proc_def` b ON a.proc_id=b.id\n" +
-		"WHERE a.user_id=? AND a.is_finished=0 ORDER BY a.id;"
+		"WHERE a.user_id=? AND a.is_finished=0 ORDER BY a.id\n" +
+		"limit ?,?;"
 
-	_, err := ExecSQL(sql, &tasks, UserID)
+	_, err := ExecSQL(sql, &tasks, UserID,StartIndex,MaxRows)
 	if err != nil {
 		return nil, err
 	}
 	return tasks, nil
 }
 
-//获取特定用户已完成任务列表
-func GetTaskFinishedList(UserID string) ([]Task, error) {
+//获取特定用户已完成任务列表。参数说明：
+////UserID:用户ID
+//StartIndex:分页用,开始index
+//MaxRows:分页用,最大返回行数
+func GetTaskFinishedList(UserID string,StartIndex int,MaxRows int) ([]Task, error) {
 	var tasks []Task
 	sql := "WITH tmp_task AS\n" +
 		"(SELECT id,proc_id, proc_inst_id,business_id,starter,node_id,node_name,prev_node_id,is_cosigned,\n" +
@@ -336,9 +343,10 @@ func GetTaskFinishedList(UserID string) ([]Task, error) {
 		"FROM tmp_task a\n" +
 		"LEFT JOIN `proc_def` b ON a.proc_id=b.id\n" +
 		"WHERE  a.is_finished=1 AND " +
-		"a.`status`!=0 ORDER BY a.id;" //有些任务不是用户完成，而是系统结束，这些任务的status=0,不必给用户看
+		"a.`status`!=0 \n" +//有些任务不是用户完成，而是系统结束，这些任务的status=0,不必给用户看
+		"ORDER BY a.id limit ?,?;"
 
-	_, err := ExecSQL(sql, &tasks, UserID,UserID)
+	_, err := ExecSQL(sql, &tasks, UserID,UserID,StartIndex,MaxRows)
 	if err != nil {
 		return nil, err
 	}

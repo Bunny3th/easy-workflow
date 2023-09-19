@@ -263,6 +263,22 @@ const docTemplateeasyworkflow = `{
                         "name": "userid",
                         "in": "query",
                         "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "example": 0,
+                        "description": "分页用,开始index",
+                        "name": "idx",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "example": 0,
+                        "description": "分页用,最大返回行数",
+                        "name": "rows",
+                        "in": "query",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -271,7 +287,7 @@ const docTemplateeasyworkflow = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/model.Instance"
+                                "$ref": "#/definitions/database.ProcInst"
                             }
                         }
                     },
@@ -374,6 +390,22 @@ const docTemplateeasyworkflow = `{
                         "example": "\"U001\"",
                         "description": "用户ID",
                         "name": "userid",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "example": 0,
+                        "description": "分页用,开始index",
+                        "name": "idx",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "example": 0,
+                        "description": "分页用,最大返回行数",
+                        "name": "rows",
                         "in": "query",
                         "required": true
                     }
@@ -656,6 +688,22 @@ const docTemplateeasyworkflow = `{
                         "name": "userid",
                         "in": "query",
                         "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "example": 0,
+                        "description": "分页用,开始index",
+                        "name": "idx",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "example": 0,
+                        "description": "分页用,最大返回行数",
+                        "name": "rows",
+                        "in": "query",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -743,43 +791,7 @@ const docTemplateeasyworkflow = `{
                 }
             }
         },
-        "model.Condition": {
-            "type": "object",
-            "properties": {
-                "expression": {
-                    "description": "条件表达式",
-                    "type": "string"
-                },
-                "nodeID": {
-                    "description": "满足条件后转跳到哪个节点",
-                    "type": "string"
-                }
-            }
-        },
-        "model.HybridGateway": {
-            "type": "object",
-            "properties": {
-                "conditions": {
-                    "description": "条件判断节点",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/model.Condition"
-                    }
-                },
-                "inevitableNodes": {
-                    "description": "必然执行的节点",
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "waitForAllPrevNode": {
-                    "description": "0:等于包含网关，只要上级节点有一个完成，就可以往下走   1:等于并行网关，必须要上级节点全部完成才能往下走",
-                    "type": "integer"
-                }
-            }
-        },
-        "model.Instance": {
+        "database.ProcInst": {
             "type": "object",
             "properties": {
                 "businessID": {
@@ -812,6 +824,42 @@ const docTemplateeasyworkflow = `{
                 },
                 "status": {
                     "description": "0:未完成(审批中) 1:已完成(通过) 2:撤销",
+                    "type": "integer"
+                }
+            }
+        },
+        "model.Condition": {
+            "type": "object",
+            "properties": {
+                "expression": {
+                    "description": "条件表达式",
+                    "type": "string"
+                },
+                "nodeID": {
+                    "description": "满足条件后转跳到哪个节点",
+                    "type": "string"
+                }
+            }
+        },
+        "model.HybridGateway": {
+            "type": "object",
+            "properties": {
+                "conditions": {
+                    "description": "条件判断节点",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.Condition"
+                    }
+                },
+                "inevitableNodes": {
+                    "description": "必然执行的节点",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "waitForAllPrevNode": {
+                    "description": "0:等于包含网关，只要上级节点有一个完成，就可以往下走   1:等于并行网关，必须要上级节点全部完成才能往下走",
                     "type": "integer"
                 }
             }
