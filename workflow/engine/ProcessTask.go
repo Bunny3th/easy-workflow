@@ -45,7 +45,7 @@ func CreateTask(ProcessInstanceID int, NodeID string, PrevNodeID string, UserIDs
 	}
 
 	//获取流程实例信息
-	ProcInstInfo,err:=GetInstanceInfo(ProcessInstanceID)
+	ProcInstInfo, err := GetInstanceInfo(ProcessInstanceID)
 	if err != nil {
 		return nil, err
 	}
@@ -60,8 +60,8 @@ func CreateTask(ProcessInstanceID int, NodeID string, PrevNodeID string, UserIDs
 	//开始生成数据
 	var tasks []database.ProcTask
 	for _, u := range UserIDs {
-		tasks = append(tasks, database.ProcTask{ProcID: ProcID, ProcInstID: ProcessInstanceID,ProcInstCreateTime: ProcInstInfo.CreateTime,
-			BusinessID: ProcInstInfo.BusinessID,Starter: ProcInstInfo.Starter,NodeID: NodeID,NodeName: Node.NodeName,
+		tasks = append(tasks, database.ProcTask{ProcID: ProcID, ProcInstID: ProcessInstanceID, ProcInstCreateTime: ProcInstInfo.CreateTime,
+			BusinessID: ProcInstInfo.BusinessID, Starter: ProcInstInfo.Starter, NodeID: NodeID, NodeName: Node.NodeName,
 			PrevNodeID: PrevNodeID, IsCosigned: Node.IsCosigned, BatchCode: BatchCode, UserID: u})
 	}
 
@@ -128,7 +128,7 @@ func TaskPass(TaskID int, Comment string, VariableJson string, DirectlyToWhoReje
 		}
 
 		//任务没有上级节点
-		if taskInfo.PrevNodeID==""{
+		if taskInfo.PrevNodeID == "" {
 			return errors.New("此任务不存在上级节点,无法使用【DirectlyToWhoRejectedMe】功能!!")
 		}
 
@@ -211,7 +211,7 @@ func processAfterTaskFinished(TaskID int, option taskOption) error {
 
 	//当前task上一个节点.这里要注意，如果当前节点的PrevNodeID=""，则需要制造一个空节点
 	var PrevNode Node
-	if taskInfo.PrevNodeID== "" {
+	if taskInfo.PrevNodeID == "" {
 		PrevNode = Node{}
 	} else {
 		PrevNode, err = GetInstanceNode(taskInfo.ProcInstID, taskInfo.PrevNodeID)
@@ -268,7 +268,7 @@ func processAfterTaskFinished(TaskID int, option taskOption) error {
 //获取任务信息
 func GetTaskInfo(TaskID int) (Task, error) {
 	var task Task
-	sql:="WITH tmp_task AS\n" +
+	sql := "WITH tmp_task AS\n" +
 		"(SELECT id,proc_id, proc_inst_id,business_id,starter,node_id,node_name,prev_node_id,is_cosigned,\n" +
 		"batch_code,user_id,`status` ,is_finished,`comment`,proc_inst_create_time,create_time,finished_time \n" +
 		"FROM proc_task WHERE id=?\n" +
@@ -279,13 +279,13 @@ func GetTaskInfo(TaskID int) (Task, error) {
 		")\n\n" +
 		"SELECT a.id,a.proc_id,b.name,a.proc_inst_id,a.business_id,a.starter,a.node_id,a.node_name,a.prev_node_id,a.is_cosigned,\n" +
 		"a.batch_code,a.user_id,a.`status` ,a.is_finished,a.`comment`,\n" +
-		"a.proc_inst_create_time,\n"+
+		"a.proc_inst_create_time,\n" +
 		"a.create_time,\n" +
 		"a.finished_time\n" +
 		"FROM tmp_task a\n" +
 		"LEFT JOIN `proc_def` b ON a.proc_id=b.id;"
 
-	_, err := ExecSQL(sql, &task, TaskID,TaskID)
+	_, err := ExecSQL(sql, &task, TaskID, TaskID)
 	if err != nil {
 		return Task{}, err
 	}
@@ -301,23 +301,23 @@ func GetTaskInfo(TaskID int) (Task, error) {
 //ProcessName:指定流程名称,传入""则为全部
 //StartIndex:分页用,开始index
 //MaxRows:分页用,最大返回行数
-func GetTaskToDoList(UserID string,ProcessName string,StartIndex int,MaxRows int) ([]Task, error) {
+func GetTaskToDoList(UserID string, ProcessName string, StartIndex int, MaxRows int) ([]Task, error) {
 	var tasks []Task
 	sql := "SELECT a.id,a.proc_id,b.name,a.proc_inst_id,\n" +
 		"a.business_id,a.starter,a.node_id,a.node_name,a.prev_node_id,\n" +
 		"a.is_cosigned,a.batch_code,a.user_id,a.`status` ,a.is_finished,a.`comment`,\n" +
-		"a.proc_inst_create_time,\n"+
+		"a.proc_inst_create_time,\n" +
 		"a.create_time,\n" +
 		"a.finished_time\n" +
 		"FROM proc_task a\n" +
 		"JOIN `proc_def` b ON a.proc_id=b.id\n" +
 		"WHERE a.user_id=@userid\n" +
 		" AND a.is_finished=0 \n" +
-		"AND CASE WHEN ''=@procname THEN TRUE ELSE b.name=@procname END\n"+
+		"AND CASE WHEN ''=@procname THEN TRUE ELSE b.name=@procname END\n" +
 		"ORDER BY a.id\n" +
 		"limit @index,@rows;"
 
-	condition:=map[string]interface{}{"userid":UserID,"procname":ProcessName,"index":StartIndex,"rows":MaxRows}
+	condition := map[string]interface{}{"userid": UserID, "procname": ProcessName, "index": StartIndex, "rows": MaxRows}
 
 	_, err := ExecSQL(sql, &tasks, condition)
 	if err != nil {
@@ -331,7 +331,7 @@ func GetTaskToDoList(UserID string,ProcessName string,StartIndex int,MaxRows int
 //ProcessName:指定流程名称,传入""则为全部
 //StartIndex:分页用,开始index
 //MaxRows:分页用,最大返回行数
-func GetTaskFinishedList(UserID string,ProcessName string,StartIndex int,MaxRows int) ([]Task, error) {
+func GetTaskFinishedList(UserID string, ProcessName string, StartIndex int, MaxRows int) ([]Task, error) {
 	var tasks []Task
 	sql := "WITH tmp_task AS\n" +
 		"(SELECT id,proc_id, proc_inst_id,business_id,starter,node_id,node_name,prev_node_id,is_cosigned,\n" +
@@ -344,17 +344,17 @@ func GetTaskFinishedList(UserID string,ProcessName string,StartIndex int,MaxRows
 		")\n\n" +
 		"SELECT a.id,a.proc_id,b.name,a.proc_inst_id,a.business_id,a.starter,a.node_id,a.node_name,a.prev_node_id,a.is_cosigned,\n" +
 		"a.batch_code,a.user_id,a.`status` ,a.is_finished,a.`comment`,\n" +
-		"a.proc_inst_create_time,\n"+
+		"a.proc_inst_create_time,\n" +
 		"a.create_time,\n" +
 		"a.finished_time  \n" +
 		"FROM tmp_task a\n" +
 		"JOIN `proc_def` b ON a.proc_id=b.id\n" +
 		"WHERE  a.is_finished=1 \n" +
-		"AND a.`status`!=0 \n" +//有些任务不是用户完成，而是系统结束，这些任务的status=0,不必给用户看
-		"AND CASE WHEN ''=@procname THEN TRUE ELSE b.name=@procname END\n"+
+		"AND a.`status`!=0 \n" + //有些任务不是用户完成，而是系统结束，这些任务的status=0,不必给用户看
+		"AND CASE WHEN ''=@procname THEN TRUE ELSE b.name=@procname END\n" +
 		"ORDER BY a.id limit @index,@rows;"
 
-	condition:=map[string]interface{}{"userid":UserID,"procname":ProcessName,"index":StartIndex,"rows":MaxRows}
+	condition := map[string]interface{}{"userid": UserID, "procname": ProcessName, "index": StartIndex, "rows": MaxRows}
 
 	_, err := ExecSQL(sql, &tasks, condition)
 	if err != nil {
@@ -439,7 +439,7 @@ func GetInstanceTaskHistory(ProcessInstanceID int) ([]Task, error) {
 		")\n\n" +
 		"SELECT a.id,a.proc_id,b.name,a.proc_inst_id,a.business_id,a.starter,a.node_id,a.node_name,a.prev_node_id,a.is_cosigned,\n" +
 		"a.batch_code,a.user_id,a.`status` ,a.is_finished,a.`comment`,\n" +
-		"a.proc_inst_create_time,\n"+
+		"a.proc_inst_create_time,\n" +
 		"a.create_time,\n" +
 		"a.finished_time\n" +
 		"FROM tmp_task a\n" +
@@ -577,7 +577,7 @@ func taskSubmitSave(TaskID int, Comment string, VariableJson string, Status int)
 
 	//更新task表记录
 	result := tx.Model(&database.ProcTask{}).Where("id=?", taskInfo.TaskID).
-		Updates(database.ProcTask{Status: Status, IsFinished: 1, Comment: Comment,FinishedTime: database.LTime.Now()})
+		Updates(database.ProcTask{Status: Status, IsFinished: 1, Comment: Comment, FinishedTime: database.LTime.Now()})
 	if result.Error != nil {
 		tx.Rollback()
 		return result.Error
@@ -608,7 +608,7 @@ func taskPrevNodeIsReject(TaskInfo Task) (error, bool) {
 	}
 	var batchCode BatchCode
 
-	result:=DB.Raw("SELECT a.batch_code\n"+
+	result := DB.Raw("SELECT a.batch_code\n"+
 		"FROM proc_task a\n "+
 		"JOIN \n"+
 		"(SELECT prev_node_id,proc_inst_id FROM proc_task WHERE id=?) b \n        "+
@@ -641,7 +641,12 @@ func taskPrevNodeIsReject(TaskInfo Task) (error, bool) {
 //难道让用户一个一个点按钮试错？此方法目的是解决这个困扰
 func WhatCanIDo(TaskID int) (TaskAction, error) {
 	var act TaskAction
-	act = TaskAction{CanPass: true, CanReject: true, CanFreeRejectToUpstreamNode: true, CanDirectlyToWhoRejectedMe: true} //初始化
+	act = TaskAction{
+		CanPass:                     true,
+		CanReject:                   true,
+		CanFreeRejectToUpstreamNode: true,
+		CanDirectlyToWhoRejectedMe:  true,
+		CanRevoke:                   false} //初始化
 
 	taskInfo, err := GetTaskInfo(TaskID)
 	if err != nil {
@@ -649,8 +654,12 @@ func WhatCanIDo(TaskID int) (TaskAction, error) {
 	}
 
 	//如果任务已经完成，则什么都做不了
-	if taskInfo.IsFinished==1{
-		return TaskAction{CanPass: false, CanReject: false, CanFreeRejectToUpstreamNode: false, CanDirectlyToWhoRejectedMe: false},nil
+	if taskInfo.IsFinished == 1 {
+		return TaskAction{CanPass: false,
+			CanReject:                   false,
+			CanFreeRejectToUpstreamNode: false,
+			CanDirectlyToWhoRejectedMe:  false,
+			CanRevoke:                   false}, nil
 	}
 
 	node, err := GetInstanceNode(taskInfo.ProcInstID, taskInfo.NodeID)
@@ -658,10 +667,11 @@ func WhatCanIDo(TaskID int) (TaskAction, error) {
 		return TaskAction{}, nil
 	}
 
-	//起始节点不能做驳回动作
+	//起始节点不能做驳回动作 & 可驳回
 	if node.NodeType == RootNode {
 		act.CanReject = false
 		act.CanFreeRejectToUpstreamNode = false
+		act.CanRevoke = true
 	}
 
 	//会签节点不能使用DirectlyToWhoRejectedMe功能
