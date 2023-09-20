@@ -35,7 +35,7 @@ func ProcessSave(Resource string, CreateUserID string) (int, error) {
 	}
 
 	//首先判断此工作流是否已定义
-	ProcID, Version, err := GetProcessIDByProcessName(dao.DB, process.ProcessName, process.Source)
+	ProcID, Version, err := GetProcessIDByProcessName(nil, process.ProcessName, process.Source)
 	if err != nil {
 		return 0, err
 	}
@@ -94,7 +94,7 @@ func ProcessSave(Resource string, CreateUserID string) (int, error) {
 	}
 
 	//解析node之间的关系，流程节点执行关系定义记录
-	Execution := nodes2Execution(ProcID,Version,process.Nodes)
+	Execution := nodes2Execution(ProcID, Version, process.Nodes)
 
 	//将Execution定义插入proc_execution表
 	result = tx.Create(&Execution)
@@ -113,7 +113,7 @@ func ProcessSave(Resource string, CreateUserID string) (int, error) {
 }
 
 //将Node转为可被数据库表记录的执行步骤。节点的PrevNodeID可能是n个，则在数据库表中需要存n行
-func nodes2Execution(ProcID int,ProcVersion int, nodes []Node) []database.ProcExecution{
+func nodes2Execution(ProcID int, ProcVersion int, nodes []Node) []database.ProcExecution {
 	var executions []database.ProcExecution
 	for _, n := range nodes {
 		if len(n.PrevNodeIDs) <= 1 { //上级节点数<=1的情况下
@@ -124,26 +124,26 @@ func nodes2Execution(ProcID int,ProcVersion int, nodes []Node) []database.ProcEx
 				PrevNodeID = n.PrevNodeIDs[0]
 			}
 			executions = append(executions, database.ProcExecution{
-				ProcID: ProcID,
+				ProcID:      ProcID,
 				ProcVersion: ProcVersion,
-				NodeID:     n.NodeID,
-				NodeName:   n.NodeName,
-				PrevNodeID: &PrevNodeID,
-				NodeType:   int(n.NodeType),
-				IsCosigned: int(n.IsCosigned),
-				CreateTime: database.LTime.Now(),
+				NodeID:      n.NodeID,
+				NodeName:    n.NodeName,
+				PrevNodeID:  &PrevNodeID,
+				NodeType:    int(n.NodeType),
+				IsCosigned:  int(n.IsCosigned),
+				CreateTime:  database.LTime.Now(),
 			})
 		} else { //上级节点>1的情况下，则每一个上级节点都要生成一行
 			for _, prev := range n.PrevNodeIDs {
 				executions = append(executions, database.ProcExecution{
-					ProcID: ProcID,
+					ProcID:      ProcID,
 					ProcVersion: ProcVersion,
-					NodeID:     n.NodeID,
-					NodeName:   n.NodeName,
-					PrevNodeID: &prev,
-					NodeType:   int(n.NodeType),
-					IsCosigned: int(n.IsCosigned),
-					CreateTime: database.LTime.Now(),
+					NodeID:      n.NodeID,
+					NodeName:    n.NodeName,
+					PrevNodeID:  &prev,
+					NodeType:    int(n.NodeType),
+					IsCosigned:  int(n.IsCosigned),
+					CreateTime:  database.LTime.Now(),
 				})
 			}
 		}
@@ -152,13 +152,23 @@ func nodes2Execution(ProcID int,ProcVersion int, nodes []Node) []database.ProcEx
 }
 
 //获取流程ID、Version by 流程名、来源
+//设置传入参数db，是因为此函数可能在事务中执行。当在事务中执行时，需要传入对应的*gorm.DB
+//若db传参为nil，则默认使用当前默认的*gorm.DB
 func GetProcessIDByProcessName(db *gorm.DB, ProcessName string, Source string) (int, int, error) {
 	type Result struct {
 		ID      int
 		Version int
 	}
 	var result Result
-	r := db.Raw("SELECT id,version FROM proc_def where name=? and source=?", ProcessName, Source).Scan(&result)
+
+	var d *gorm.DB
+	if db == nil {
+		d = dao.DB
+	} else {
+		d = db
+	}
+
+	r := d.Raw("SELECT id,version FROM proc_def where name=? and source=?", ProcessName, Source).Scan(&result)
 	if r.Error != nil {
 		return 0, 0, r.Error
 	}
