@@ -298,9 +298,10 @@ func GetTaskInfo(TaskID int) (Task, error) {
 
 //获取特定用户待办任务列表。参数说明：
 //UserID:用户ID
+//ProcessName:指定流程名称,传入""则为全部
 //StartIndex:分页用,开始index
 //MaxRows:分页用,最大返回行数
-func GetTaskToDoList(UserID string,StartIndex int,MaxRows int) ([]Task, error) {
+func GetTaskToDoList(UserID string,ProcessName string,StartIndex int,MaxRows int) ([]Task, error) {
 	var tasks []Task
 	sql := "SELECT a.id,a.proc_id,b.name,a.proc_inst_id,\n" +
 		"a.business_id,a.starter,a.node_id,a.node_name,a.prev_node_id,\n" +
@@ -309,11 +310,16 @@ func GetTaskToDoList(UserID string,StartIndex int,MaxRows int) ([]Task, error) {
 		"a.create_time,\n" +
 		"a.finished_time\n" +
 		"FROM proc_task a\n" +
-		"LEFT JOIN `proc_def` b ON a.proc_id=b.id\n" +
-		"WHERE a.user_id=? AND a.is_finished=0 ORDER BY a.id\n" +
-		"limit ?,?;"
+		"JOIN `proc_def` b ON a.proc_id=b.id\n" +
+		"WHERE a.user_id=@userid\n" +
+		" AND a.is_finished=0 \n" +
+		"AND CASE WHEN ''=@procname THEN TRUE ELSE b.name=@procname END\n"+
+		"ORDER BY a.id\n" +
+		"limit @index,@rows;"
 
-	_, err := ExecSQL(sql, &tasks, UserID,StartIndex,MaxRows)
+	condition:=map[string]interface{}{"userid":UserID,"procname":ProcessName,"index":StartIndex,"rows":MaxRows}
+
+	_, err := ExecSQL(sql, &tasks, condition)
 	if err != nil {
 		return nil, err
 	}
@@ -322,18 +328,19 @@ func GetTaskToDoList(UserID string,StartIndex int,MaxRows int) ([]Task, error) {
 
 //获取特定用户已完成任务列表。参数说明：
 ////UserID:用户ID
+//ProcessName:指定流程名称,传入""则为全部
 //StartIndex:分页用,开始index
 //MaxRows:分页用,最大返回行数
-func GetTaskFinishedList(UserID string,StartIndex int,MaxRows int) ([]Task, error) {
+func GetTaskFinishedList(UserID string,ProcessName string,StartIndex int,MaxRows int) ([]Task, error) {
 	var tasks []Task
 	sql := "WITH tmp_task AS\n" +
 		"(SELECT id,proc_id, proc_inst_id,business_id,starter,node_id,node_name,prev_node_id,is_cosigned,\n" +
 		"batch_code,user_id,`status` ,is_finished,`comment`,proc_inst_create_time,create_time,finished_time \n" +
-		"FROM proc_task WHERE user_id=?\n" +
+		"FROM proc_task WHERE user_id=@userid\n" +
 		"UNION ALL\n" +
 		"SELECT task_id AS id,proc_id, proc_inst_id,business_id,starter,node_id,node_name,prev_node_id,is_cosigned,\n" +
 		"batch_code,user_id,`status` ,is_finished,`comment`,proc_inst_create_time,create_time,finished_time \n" +
-		"FROM hist_proc_task WHERE user_id=?\n" +
+		"FROM hist_proc_task WHERE user_id=@userid\n" +
 		")\n\n" +
 		"SELECT a.id,a.proc_id,b.name,a.proc_inst_id,a.business_id,a.starter,a.node_id,a.node_name,a.prev_node_id,a.is_cosigned,\n" +
 		"a.batch_code,a.user_id,a.`status` ,a.is_finished,a.`comment`,\n" +
@@ -341,12 +348,15 @@ func GetTaskFinishedList(UserID string,StartIndex int,MaxRows int) ([]Task, erro
 		"a.create_time,\n" +
 		"a.finished_time  \n" +
 		"FROM tmp_task a\n" +
-		"LEFT JOIN `proc_def` b ON a.proc_id=b.id\n" +
-		"WHERE  a.is_finished=1 AND " +
-		"a.`status`!=0 \n" +//有些任务不是用户完成，而是系统结束，这些任务的status=0,不必给用户看
-		"ORDER BY a.id limit ?,?;"
+		"JOIN `proc_def` b ON a.proc_id=b.id\n" +
+		"WHERE  a.is_finished=1 \n" +
+		"AND a.`status`!=0 \n" +//有些任务不是用户完成，而是系统结束，这些任务的status=0,不必给用户看
+		"AND CASE WHEN ''=@procname THEN TRUE ELSE b.name=@procname END\n"+
+		"ORDER BY a.id limit @index,@rows;"
 
-	_, err := ExecSQL(sql, &tasks, UserID,UserID,StartIndex,MaxRows)
+	condition:=map[string]interface{}{"userid":UserID,"procname":ProcessName,"index":StartIndex,"rows":MaxRows}
+
+	_, err := ExecSQL(sql, &tasks, condition)
 	if err != nil {
 		return nil, err
 	}
@@ -433,7 +443,7 @@ func GetInstanceTaskHistory(ProcessInstanceID int) ([]Task, error) {
 		"a.create_time,\n" +
 		"a.finished_time\n" +
 		"FROM tmp_task a\n" +
-		"LEFT JOIN `proc_def` b ON a.proc_id=b.id;"
+		"JOIN `proc_def` b ON a.proc_id=b.id;"
 	_, err := ExecSQL(sql, &tasklist, ProcessInstanceID, ProcessInstanceID)
 	if err != nil {
 		return nil, err

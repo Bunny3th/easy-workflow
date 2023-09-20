@@ -125,6 +125,11 @@ func InstanceStart(ProcessID int, BusinessID string, Comment string, VariablesJs
 	//开始节点处理
 	err = startNodeHandle(InstanceID, &StartNode, Comment, VariablesJson)
 	if err != nil {
+		//需要删除刚才已经建立的实例记录和变量记录。
+		//这里已经没有必要对数据库执行做错误判断了，能删就删，删不掉也没多大关系
+		dao.DB.Where("id=?",InstanceID).Delete(database.ProcInst{})
+		dao.DB.Where("proc_inst_id=?",InstanceID).Delete(database.ProcInstVariable{})
+
 		return InstanceID, err
 	}
 
@@ -213,10 +218,11 @@ func InstanceVariablesSave(ProcessInstanceID int, VariablesJson string) error {
 }
 
 //获取流程实例信息
-func GetInstanceInfo(ProcessInstanceID int) (database.ProcInst, error) {
-	var procInst database.ProcInst
+func GetInstanceInfo(ProcessInstanceID int) (Instance, error) {
+	var procInst Instance
 	//历史信息也要兼顾
-	sql:="SELECT id,proc_id,proc_version,business_id,starter,current_node_id,\n" +
+	sql:="WITH tmp_procinst AS\n" +
+		"(SELECT id,proc_id,proc_version,business_id,starter,current_node_id,\n" +
 		"create_time,`status`\n" +
 		"FROM proc_inst \n" +
 		"WHERE id=?\n" +
@@ -224,7 +230,13 @@ func GetInstanceInfo(ProcessInstanceID int) (database.ProcInst, error) {
 		"SELECT proc_inst_id AS id,proc_id,proc_version,business_id,starter,current_node_id,\n" +
 		"create_time,`status` \n" +
 		"FROM hist_proc_inst \n" +
-		"WHERE proc_inst_id=?"
+		"WHERE proc_inst_id=?)\n" +
+
+		"SELECT a.id,a.proc_id,a.proc_version,a.business_id,a.starter,\n" +
+		"a.current_node_id,a.create_time,a.`status`,b.name \n" +
+		"FROM  tmp_procinst a\n" +
+		"LEFT JOIN proc_def b ON a.proc_id=b.id"
+
 	_, err := dao.ExecSQL(sql, &procInst, ProcessInstanceID,ProcessInstanceID)
 	if err != nil {
 		return procInst, err
@@ -233,25 +245,35 @@ func GetInstanceInfo(ProcessInstanceID int) (database.ProcInst, error) {
 	return procInst, nil
 }
 
-//获取起始人为特定用户的实例。参数说明：
-////UserID:用户ID
-////StartIndex:分页用,开始index
-////MaxRows:分页用,最大返回行数
-func GetInstanceStartByUser(UserID string,StartIndex int,MaxRows int) ([]database.ProcInst,error){
-	var procInsts []database.ProcInst
+//获取起始人为特定用户的流程实例。参数说明：
+//UserID:用户ID
+//ProcessName:指定流程名称,传入""则为全部
+//StartIndex:分页用,开始index
+//MaxRows:分页用,最大返回行数
+func GetInstanceStartByUser(UserID string,ProcessName string,StartIndex int,MaxRows int) ([]Instance,error){
+	var procInsts []Instance
 	//历史信息也要兼顾
 	sql:="WITH tmp_procinst AS\n " +
 		"(SELECT id,proc_id,proc_version,business_id,starter,current_node_id,\n" +
 		"create_time,`status`\n" +
 		"FROM proc_inst \n" +
-		"WHERE starter=?\n" +
+		"WHERE starter=@userid\n" +
 		"UNION ALL\n" +
 		"SELECT proc_inst_id AS id,proc_id,proc_version,business_id,starter,current_node_id,\n" +
 		"create_time,`status` \n" +
 		"FROM hist_proc_inst \n" +
-		"WHERE starter=?)\n" +
-		"SELECT * FROM tmp_procinst ORDER BY id limit ?,?"
-	_, err := dao.ExecSQL(sql, &procInsts, UserID,UserID,StartIndex,MaxRows)
+		"WHERE starter=@userid)\n" +
+
+		"SELECT a.id,a.proc_id,a.proc_version,a.business_id,\n" +
+		"a.starter,a.current_node_id,a.create_time,a.`status`,b.name\n" +
+		"FROM tmp_procinst a\n" +
+		"JOIN proc_def b ON a.proc_id=b.id\n" +
+		"WHERE CASE WHEN ''=@procname THEN TRUE ELSE b.name=@procname END\n"+
+		"ORDER BY a.id limit @index,@rows"
+
+	condition:=map[string]interface{}{"userid":UserID,"procname":ProcessName,"index":StartIndex,"rows":MaxRows}
+
+	_, err := dao.ExecSQL(sql, &procInsts, condition)
 	if err != nil {
 		return procInsts, err
 	}
