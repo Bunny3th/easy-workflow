@@ -145,7 +145,7 @@ func InstanceRevoke(ProcessInstanceID int, Force bool,RevokeUserID string) error
 		//这段SQL判断是否当前Node就是开始Node
 		sql := "SELECT a.id FROM proc_inst a " +
 			"JOIN proc_execution b ON a.proc_id=b.proc_id AND a.current_node_id=b.node_id " +
-			"WHERE a.id=? AND b.prev_node_id IS NULL LIMIT 1"
+			"WHERE a.id=? AND (b.prev_node_id IS NULL OR b.prev_node_id='') LIMIT 1"
 		var id int
 		_, err := dao.ExecSQL(sql, &id, ProcessInstanceID)
 		if err != nil {
