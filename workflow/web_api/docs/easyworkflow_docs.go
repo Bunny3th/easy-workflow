@@ -408,6 +408,13 @@ const docTemplateeasyworkflow = `{
                         "in": "query"
                     },
                     {
+                        "type": "boolean",
+                        "description": "忽略由我开启流程,而生成处理人是我自己的任务",
+                        "name": "ignorestartbyme",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
                         "type": "integer",
                         "example": 0,
                         "description": "分页用,开始index",
@@ -1079,6 +1086,10 @@ const docTemplateeasyworkflow = `{
                 },
                 "canReject": {
                     "description": "任务可以执行“驳回”",
+                    "type": "boolean"
+                },
+                "canRevoke": {
+                    "description": "任务可以执行\"撤销\"",
                     "type": "boolean"
                 }
             }

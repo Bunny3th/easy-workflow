@@ -326,12 +326,14 @@ func GetTaskToDoList(UserID string, ProcessName string, StartIndex int, MaxRows 
 	return tasks, nil
 }
 
-//获取特定用户已完成任务列表。参数说明：
-////UserID:用户ID
-//ProcessName:指定流程名称,传入""则为全部
-//StartIndex:分页用,开始index
-//MaxRows:分页用,最大返回行数
-func GetTaskFinishedList(UserID string, ProcessName string, StartIndex int, MaxRows int) ([]Task, error) {
+// 获取特定用户已完成任务列表。参数说明：
+// UserID:用户ID
+// ProcessName:指定流程名称,传入""则为全部
+// IgnoreStartByMe: 某些情况下只希望看到“别人提交由我审批完成的任务",而不希望看到"由我开启流程,而生成处理人是我自己的任务",则传True
+// taps:"由我启动的流程"可使用GetInstanceStartByUser函数
+// StartIndex:分页用,开始index
+// MaxRows:分页用,最大返回行数
+func GetTaskFinishedList(UserID string, ProcessName string, IgnoreStartByMe bool, StartIndex int, MaxRows int) ([]Task, error) {
 	var tasks []Task
 	sql := "WITH tmp_task AS\n" +
 		"(SELECT id,proc_id, proc_inst_id,business_id,starter,node_id,node_name,prev_node_id,is_cosigned,\n" +
@@ -352,9 +354,15 @@ func GetTaskFinishedList(UserID string, ProcessName string, StartIndex int, MaxR
 		"WHERE  a.is_finished=1 \n" +
 		"AND a.`status`!=0 \n" + //有些任务不是用户完成，而是系统结束，这些任务的status=0,不必给用户看
 		"AND CASE WHEN ''=@procname THEN TRUE ELSE b.name=@procname END\n" +
+		"AND CASE WHEN true=@ignorestartbyme THEN a.starter!=@userid ELSE TRUE END\n" + //是否忽略由我开启流程,而生成处理人是我自己的任务
 		"ORDER BY a.id limit @index,@rows;"
 
-	condition := map[string]interface{}{"userid": UserID, "procname": ProcessName, "index": StartIndex, "rows": MaxRows}
+	condition := map[string]interface{}{
+		"userid":          UserID,
+		"procname":        ProcessName,
+		"index":           StartIndex,
+		"rows":            MaxRows,
+		"ignorestartbyme": IgnoreStartByMe}
 
 	_, err := ExecSQL(sql, &tasks, condition)
 	if err != nil {

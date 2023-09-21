@@ -209,6 +209,9 @@ definitions:
       canReject:
         description: 任务可以执行“驳回”
         type: boolean
+      canRevoke:
+        description: 任务可以执行"撤销"
+        type: boolean
     type: object
 info:
   contact: {}
@@ -475,6 +478,11 @@ paths:
         in: query
         name: procname
         type: string
+      - description: 忽略由我开启流程,而生成处理人是我自己的任务
+        in: query
+        name: ignorestartbyme
+        required: true
+        type: boolean
       - description: 分页用,开始index
         example: 0
         in: query

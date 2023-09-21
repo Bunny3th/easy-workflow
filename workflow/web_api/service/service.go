@@ -193,7 +193,7 @@ func ProcInst_TaskHistory(c *gin.Context) {
 // @Router       /inst/start/by [get]
 func ProcInst_StartByUser(c *gin.Context) {
 	UserID := c.Query("userid")
-	ProcessName:=c.Query("procname")
+	ProcessName := c.Query("procname")
 	StartIndex, err := strconv.Atoi(c.Query("idx"))
 	if err != nil {
 		c.AbortWithStatusJSON(400, err.Error())
@@ -203,7 +203,7 @@ func ProcInst_StartByUser(c *gin.Context) {
 		c.AbortWithStatusJSON(400, err.Error())
 	}
 
-	if insts, err := GetInstanceStartByUser(UserID,ProcessName,StartIndex,MaxRow); err == nil {
+	if insts, err := GetInstanceStartByUser(UserID, ProcessName, StartIndex, MaxRow); err == nil {
 		c.JSON(200, insts)
 	} else {
 		c.JSON(400, err.Error())
@@ -298,7 +298,7 @@ func Task_Reject(c *gin.Context) {
 // @Router       /task/todo [get]
 func Task_ToDoList(c *gin.Context) {
 	UserID := c.Query("userid")
-	ProcessName:=c.Query("procname")
+	ProcessName := c.Query("procname")
 	StartIndex, err := strconv.Atoi(c.Query("idx"))
 	if err != nil {
 		c.AbortWithStatusJSON(400, err.Error())
@@ -308,7 +308,7 @@ func Task_ToDoList(c *gin.Context) {
 		c.AbortWithStatusJSON(400, err.Error())
 	}
 
-	if tasks, err := GetTaskToDoList(UserID,ProcessName, StartIndex, MaxRow); err == nil {
+	if tasks, err := GetTaskToDoList(UserID, ProcessName, StartIndex, MaxRow); err == nil {
 		c.JSON(200, tasks)
 	} else {
 		c.JSON(400, err.Error())
@@ -321,6 +321,7 @@ func Task_ToDoList(c *gin.Context) {
 // @Produce      json
 // @Param        userid  query string  true  "用户ID" example("U001")
 // @Param        procname  query string  false  "指定流程名称，非必填" example("请假")
+// @Param        ignorestartbyme  query bool  true  "忽略由我开启流程,而生成处理人是我自己的任务" example("true")
 // @Param        idx  query int  true  "分页用,开始index" example(0)
 // @Param        rows  query int  true  "分页用,最大返回行数" example(0)
 // @Success      200  {object}  []model.Task 任务数组
@@ -328,7 +329,11 @@ func Task_ToDoList(c *gin.Context) {
 // @Router       /task/finished [get]
 func Task_FinishedList(c *gin.Context) {
 	UserID := c.Query("userid")
-	ProcessName:=c.Query("procname")
+	ProcessName := c.Query("procname")
+	IgnoreStartByMe, err := strconv.ParseBool(c.Query("ignorestartbyme"))
+	if err != nil {
+		c.AbortWithStatusJSON(400, err.Error())
+	}
 	StartIndex, err := strconv.Atoi(c.Query("idx"))
 	if err != nil {
 		c.AbortWithStatusJSON(400, err.Error())
@@ -337,7 +342,7 @@ func Task_FinishedList(c *gin.Context) {
 	if err != nil {
 		c.AbortWithStatusJSON(400, err.Error())
 	}
-	if tasks, err := GetTaskFinishedList(UserID,ProcessName,StartIndex,MaxRow); err == nil {
+	if tasks, err := GetTaskFinishedList(UserID, ProcessName, IgnoreStartByMe, StartIndex, MaxRow); err == nil {
 		c.JSON(200, tasks)
 	} else {
 		c.JSON(400, err.Error())
