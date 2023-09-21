@@ -36,3 +36,7 @@ func (t *LocalTime) Scan(v interface{}) error {
 func (t *LocalTime) Now() LocalTime{
 	return LocalTime(time.Now())
 }
+
+func (t *LocalTime) String() string{
+	return time.Time(*t).Format("2006-01-02 15:04:05")
+}
