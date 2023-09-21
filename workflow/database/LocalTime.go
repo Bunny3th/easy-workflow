@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 )
+
 //gorm中，定义数据表datetime字段类型为time.time时,查询返回格式类似2023-09-19T14:41:28+08:00
 //这种格式对人不友好，亦对前端处理不友好(js时间处理函数较弱)
 //故使用自定义类型，对时间格式做格式化处理
@@ -33,10 +34,14 @@ func (t *LocalTime) Scan(v interface{}) error {
 	return fmt.Errorf("can not convert %v to timestamp", v)
 }
 
-func (t *LocalTime) Now() LocalTime{
+func (t *LocalTime) Now() LocalTime {
 	return LocalTime(time.Now())
 }
 
-func (t *LocalTime) String() string{
+func (t *LocalTime) String() string {
+	if t == nil {
+		return ""
+	}
+
 	return time.Time(*t).Format("2006-01-02 15:04:05")
 }
