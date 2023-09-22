@@ -87,7 +87,7 @@ func ProcDef_ListBySource(c *gin.Context) {
 // @Tags         流程定义
 // @Produce      json
 // @Param        id  query string  true  "流程ID" example(1)
-// @Success      200  {object}  []model.Node "Node数组"
+// @Success      200  {object}  model.Process "流程定义"
 // @Failure      400  {object}  string 报错信息
 // @Router       /def/get [get]
 func ProcDef_GetProcDefByID(c *gin.Context) {
