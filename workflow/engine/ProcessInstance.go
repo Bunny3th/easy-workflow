@@ -125,10 +125,11 @@ func InstanceStart(ProcessID int, BusinessID string, Comment string, VariablesJs
 	//开始节点处理
 	err = startNodeHandle(InstanceID, &StartNode, Comment, VariablesJson)
 	if err != nil {
-		//需要删除刚才已经建立的实例记录和变量记录。
+		//需要删除刚才已经建立的实例记录、变量记录、任务记录。
 		//这里已经没有必要对数据库执行做错误判断了，能删就删，删不掉也没多大关系
 		dao.DB.Where("id=?",InstanceID).Delete(database.ProcInst{})
 		dao.DB.Where("proc_inst_id=?",InstanceID).Delete(database.ProcInstVariable{})
+		dao.DB.Where("proc_inst_id=?",InstanceID).Delete(database.ProcTask{})
 
 		return InstanceID, err
 	}
