@@ -1,10 +1,8 @@
 package engine
 
 import (
-	//"encoding/json"
 	"errors"
 	"fmt"
-	. "github.com/Bunny3th/easy-workflow/workflow/dao"
 	"github.com/Bunny3th/easy-workflow/workflow/database"
 	. "github.com/Bunny3th/easy-workflow/workflow/model"
 )

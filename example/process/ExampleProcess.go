@@ -3,7 +3,6 @@ package process
 import (
 	. "github.com/Bunny3th/easy-workflow/workflow/engine"
 	. "github.com/Bunny3th/easy-workflow/workflow/model"
-	. "github.com/Bunny3th/easy-workflow/workflow/util"
 	"log"
 )
 

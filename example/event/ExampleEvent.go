@@ -1,7 +1,6 @@
 package event
 
 import (
-	"github.com/Bunny3th/easy-workflow/workflow/dao"
 	"github.com/Bunny3th/easy-workflow/workflow/database"
 	. "github.com/Bunny3th/easy-workflow/workflow/engine"
 	. "github.com/Bunny3th/easy-workflow/workflow/model"
@@ -95,7 +94,7 @@ func (e *MyEvent) MyEvent_TaskForceNodePass(TaskID int, CurrentNode *Node, PrevN
 	//2、自动生成comment，以免其他被代表的用户疑惑
 
 	if PassNum >= 2 {
-		tx := dao.DB.Begin()
+		tx := DB.Begin()
 
 		//找到本节点那些还没有通过的task
 		var tasks []database.ProcTask

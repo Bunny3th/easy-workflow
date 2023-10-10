@@ -3,10 +3,8 @@ package engine
 import (
 	"errors"
 	"fmt"
-	"github.com/Bunny3th/easy-workflow/workflow/dao"
 	"github.com/Bunny3th/easy-workflow/workflow/database"
 	. "github.com/Bunny3th/easy-workflow/workflow/model"
-	. "github.com/Bunny3th/easy-workflow/workflow/util"
 )
 
 //map [NodeID]Node
@@ -52,7 +50,7 @@ func instanceInit(ProcessID int, BusinessID string, VariableJson string) (int, N
 		Node_ID string
 	}
 	var r result
-	_, err = dao.ExecSQL("SELECT node_id FROM `proc_execution` WHERE proc_id=? AND node_type=0", &r, ProcessID)
+	_, err = ExecSQL("SELECT node_id FROM `proc_execution` WHERE proc_id=? AND node_type=0", &r, ProcessID)
 	if err != nil {
 		return 0, Node{}, err
 	}
@@ -70,10 +68,10 @@ func instanceInit(ProcessID int, BusinessID string, VariableJson string) (int, N
 
 	//获取流程定义信息
 	var procDef database.ProcDef
-	dao.DB.Where("id=?", ProcessID).First(&procDef)
+	DB.Where("id=?", ProcessID).First(&procDef)
 
 	//开启事务
-	tx := dao.DB.Begin()
+	tx := DB.Begin()
 	//在实例表中生成一条数据
 	procInst := database.ProcInst{ProcID: ProcessID, ProcVersion: procDef.Version, BusinessID: BusinessID, CurrentNodeID: StartNode.NodeID}
 	re := tx.Create(&procInst)
@@ -127,9 +125,9 @@ func InstanceStart(ProcessID int, BusinessID string, Comment string, VariablesJs
 	if err != nil {
 		//需要删除刚才已经建立的实例记录、变量记录、任务记录。
 		//这里已经没有必要对数据库执行做错误判断了，能删就删，删不掉也没多大关系
-		dao.DB.Where("id=?",InstanceID).Delete(database.ProcInst{})
-		dao.DB.Where("proc_inst_id=?",InstanceID).Delete(database.ProcInstVariable{})
-		dao.DB.Where("proc_inst_id=?",InstanceID).Delete(database.ProcTask{})
+		DB.Where("id=?",InstanceID).Delete(database.ProcInst{})
+		DB.Where("proc_inst_id=?",InstanceID).Delete(database.ProcInstVariable{})
+		DB.Where("proc_inst_id=?",InstanceID).Delete(database.ProcTask{})
 
 		return InstanceID, err
 	}
@@ -148,7 +146,7 @@ func InstanceRevoke(ProcessInstanceID int, Force bool,RevokeUserID string) error
 			"JOIN proc_execution b ON a.proc_id=b.proc_id AND a.current_node_id=b.node_id " +
 			"WHERE a.id=? AND (b.prev_node_id IS NULL OR b.prev_node_id='') LIMIT 1"
 		var id int
-		_, err := dao.ExecSQL(sql, &id, ProcessInstanceID)
+		_, err := ExecSQL(sql, &id, ProcessInstanceID)
 		if err != nil {
 			return err
 		}
@@ -186,7 +184,7 @@ func InstanceVariablesSave(ProcessInstanceID int, VariablesJson string) error {
 	var variables []Variable
 	Json2Struct(VariablesJson, &variables)
 
-	tx := dao.DB.Begin()
+	tx := DB.Begin()
 	for _, v := range variables {
 		var ProcInstVariable database.ProcInstVariable
 		result := tx.Raw("SELECT * FROM proc_inst_variable WHERE proc_inst_id=? AND `key`=? ORDER BY id LIMIT 1",
@@ -238,7 +236,7 @@ func GetInstanceInfo(ProcessInstanceID int) (Instance, error) {
 		"FROM  tmp_procinst a\n" +
 		"LEFT JOIN proc_def b ON a.proc_id=b.id"
 
-	_, err := dao.ExecSQL(sql, &procInst, ProcessInstanceID,ProcessInstanceID)
+	_, err := ExecSQL(sql, &procInst, ProcessInstanceID,ProcessInstanceID)
 	if err != nil {
 		return procInst, err
 	}
@@ -274,7 +272,7 @@ func GetInstanceStartByUser(UserID string,ProcessName string,StartIndex int,MaxR
 
 	condition:=map[string]interface{}{"userid":UserID,"procname":ProcessName,"index":StartIndex,"rows":MaxRows}
 
-	_, err := dao.ExecSQL(sql, &procInsts, condition)
+	_, err := ExecSQL(sql, &procInsts, condition)
 	if err != nil {
 		return procInsts, err
 	}

@@ -3,7 +3,6 @@ package engine
 import (
 	"fmt"
 	. "github.com/Bunny3th/easy-workflow/workflow/model"
-	. "github.com/Bunny3th/easy-workflow/workflow/util"
 	"reflect"
 )
 

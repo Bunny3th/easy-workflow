@@ -1,10 +1,9 @@
-package util
+package engine
 
 import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"github.com/Bunny3th/easy-workflow/workflow/dao"
 	"reflect"
 	"regexp"
 	"strings"
@@ -68,9 +67,10 @@ func ExpressionEvaluator(expression string) (bool, error) {
 
 	sql := "SELECT " + expression
 	var ok bool
-	_, err := dao.ExecSQL(sql, &ok)
+	_, err := ExecSQL(sql, &ok)
 	if err != nil {
 		return false, err
 	}
 	return ok, nil
 }
+

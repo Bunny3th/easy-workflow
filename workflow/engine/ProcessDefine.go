@@ -1,19 +1,16 @@
 package engine
 
 import (
-	//"encoding/json"
 	"errors"
-	"github.com/Bunny3th/easy-workflow/workflow/dao"
 	"github.com/Bunny3th/easy-workflow/workflow/database"
 	. "github.com/Bunny3th/easy-workflow/workflow/model"
-	"github.com/Bunny3th/easy-workflow/workflow/util"
 	"gorm.io/gorm"
 )
 
 //流程定义解析(json->struct)
 func ProcessParse(Resource string) (Process, error) {
 	var process Process
-	err := util.Json2Struct(Resource, &process)
+	err := Json2Struct(Resource, &process)
 	if err != nil {
 		return Process{}, err
 	}
@@ -41,7 +38,7 @@ func ProcessSave(Resource string, CreateUserID string) (int, error) {
 	}
 
 	//开启事务
-	tx := dao.DB.Begin()
+	tx := DB.Begin()
 	//判断工作流是否已经定义
 	if ProcID != 0 { //已有老版本
 		//需要将老版本移到历史表中
@@ -163,7 +160,7 @@ func GetProcessIDByProcessName(db *gorm.DB, ProcessName string, Source string) (
 
 	var d *gorm.DB
 	if db == nil {
-		d = dao.DB
+		d = DB
 	} else {
 		d = db
 	}
@@ -179,7 +176,7 @@ func GetProcessIDByProcessName(db *gorm.DB, ProcessName string, Source string) (
 //获取流程ID by 流程实例ID
 func GetProcessIDByInstanceID(ProcessInstanceID int) (int, error) {
 	var ID int
-	_, err := dao.ExecSQL("SELECT proc_id FROM `proc_inst` WHERE id=?", &ID, ProcessInstanceID)
+	_, err := ExecSQL("SELECT proc_id FROM `proc_inst` WHERE id=?", &ID, ProcessInstanceID)
 	if err != nil {
 		return 0, err
 	}
@@ -194,7 +191,7 @@ func GetProcessNameByInstanceID(ProcessInstanceID int) (string, error) {
 		Name string
 	}
 	var r result
-	_, err := dao.ExecSQL(sql, &r, ProcessInstanceID)
+	_, err := ExecSQL(sql, &r, ProcessInstanceID)
 	if err != nil {
 		return "", err
 	}
@@ -208,7 +205,7 @@ func GetProcessDefine(ProcessID int) (Process, error) {
 		Resource string
 	}
 	var r result
-	_, err := dao.ExecSQL("SELECT resource FROM proc_def WHERE ID=?", &r, ProcessID)
+	_, err := ExecSQL("SELECT resource FROM proc_def WHERE ID=?", &r, ProcessID)
 	if err != nil {
 		return Process{}, err
 	}
@@ -219,6 +216,6 @@ func GetProcessDefine(ProcessID int) (Process, error) {
 //获得某个source下所有流程信息
 func GetProcessList(Source string) ([]database.ProcDef, error) {
 	var ProcessDefine []database.ProcDef
-	_, err := dao.ExecSQL("select * from proc_def where source=?", &ProcessDefine, Source)
+	_, err := ExecSQL("select * from proc_def where source=?", &ProcessDefine, Source)
 	return ProcessDefine, err
 }

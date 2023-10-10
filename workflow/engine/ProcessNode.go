@@ -3,9 +3,7 @@ package engine
 import (
 	"errors"
 	"fmt"
-	"github.com/Bunny3th/easy-workflow/workflow/dao"
 	. "github.com/Bunny3th/easy-workflow/workflow/model"
-	. "github.com/Bunny3th/easy-workflow/workflow/util"
 	"regexp"
 	"strings"
 )
@@ -83,7 +81,7 @@ func startNodeHandle(ProcessInstanceID int, StartNode *Node, Comment string, Var
 //Status 流程实例状态 1:已完成 2:撤销
 func EndNodeHandle(ProcessInstanceID int, Status int) error {
 	//开启事务
-	tx := dao.DB.Begin()
+	tx := DB.Begin()
 
 	//***这里注意，经过多次测试，执行原生SQL，无返回值必须用Exec,用Raw会不执行***
 
@@ -312,7 +310,7 @@ func InstanceNodeIsFinish(ProcessInstanceID int, NodeID string) (bool, error) {
 		"(SELECT COUNT(*) AS total,SUM(is_finished) AS finished " +
 		"FROM `proc_task` WHERE proc_inst_id=? AND node_id=? GROUP BY proc_inst_id,node_id) a"
 
-	if _, err := dao.ExecSQL(sql, &finished, ProcessInstanceID, NodeID); err == nil {
+	if _, err := ExecSQL(sql, &finished, ProcessInstanceID, NodeID); err == nil {
 		return finished, nil
 	} else {
 		return finished, err

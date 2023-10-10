@@ -2,7 +2,6 @@ package engine
 
 import (
 	"errors"
-	"github.com/Bunny3th/easy-workflow/workflow/dao"
 	"strings"
 )
 
@@ -26,7 +25,7 @@ func SetVariable(ProcessInstanceID int, variable string) (string, bool, error) {
 		Value string
 	}
 	var r result
-	if _, err := dao.ExecSQL("SELECT `value` FROM `proc_inst_variable` "+
+	if _, err := ExecSQL("SELECT `value` FROM `proc_inst_variable` "+
 		"WHERE `proc_inst_id`=? AND `key`=? LIMIT 1", &r, ProcessInstanceID, Key); err == nil {
 
 		//判断是否有匹配的值

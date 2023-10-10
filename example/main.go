@@ -3,15 +3,14 @@ package main
 import (
 	. "github.com/Bunny3th/easy-workflow/example/event"
 	. "github.com/Bunny3th/easy-workflow/example/process"
-	. "github.com/Bunny3th/easy-workflow/workflow/config"
 	. "github.com/Bunny3th/easy-workflow/workflow/engine"
 	. "github.com/Bunny3th/easy-workflow/workflow/web_api"
 	"github.com/gin-gonic/gin"
 )
 
 func DBConfig() {
-	DBConnect.DBConnectString = "goeasy:sNd%sLDjd*12@tcp(172.16.18.18:3306)/test_workflow?charset=utf8mb4&parseTime=True&loc=Local"
-	DBlog.LogLevel = 4 //日志级别(默认3) 1:Silent 2:Error 3:Warn 4:Info
+	DBConnConfigurator.DBConnectString = "goeasy:sNd%sLDjd*12@tcp(172.16.18.18:3306)/test_workflow?charset=utf8mb4&parseTime=True&loc=Local"
+	DBConnConfigurator.LogLevel = 4 //日志级别(默认3) 1:Silent 2:Error 3:Warn 4:Info
 }
 
 func main() {

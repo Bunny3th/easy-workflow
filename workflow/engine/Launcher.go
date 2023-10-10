@@ -1,8 +1,6 @@
 package engine
 
 import (
-	"github.com/Bunny3th/easy-workflow/workflow/dao"
-	. "github.com/Bunny3th/easy-workflow/workflow/database"
 	"log"
 )
 
@@ -17,7 +15,7 @@ func StartWorkFlow(DBConfigurator DataBaseConfigurator,ignoreEventError bool,Eve
 	DBConfigurator()
 
 	//数据库连接初始化
-	dao.DBInit()
+	DBInit()
 
 	////初始化数据库表
 	DatabaseInitialize()

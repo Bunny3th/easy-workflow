@@ -1,7 +1,6 @@
-package dao
+package engine
 
 import (
-	. "github.com/Bunny3th/easy-workflow/workflow/config"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -18,15 +17,15 @@ var Err error
 
 func DBInit() {
 	//有关gorm.Config，可查看文档 https://gorm.cn/zh_CN/docs/gorm_config.html
-	dsn := DBConnect.DBConnectString
+	dsn := DBConnConfigurator.DBConnectString
 	//gorm的默认日志是只打印错误和慢SQL,这里可以自定义日志级别
 	myLogger := logger.New(
 		log.New(os.Stdout, "\r\n", log.LstdFlags), // （日志输出的目标，前缀和日志包含的内容）
 		logger.Config{
-			SlowThreshold:             time.Duration(DBlog.SlowThreshold) * time.Second, // 慢SQL阈值
-			LogLevel:                  logger.LogLevel(DBlog.LogLevel),                  // 日志级别
-			IgnoreRecordNotFoundError: DBlog.IgnoreRecordNotFoundError,                  // 忽略ErrRecordNotFound（记录未找到）错误
-			Colorful:                  DBlog.Colorful,                                   // 使用彩色打印
+			SlowThreshold:             time.Duration(DBConnConfigurator.SlowThreshold) * time.Second, // 慢SQL阈值
+			LogLevel:                  logger.LogLevel(DBConnConfigurator.LogLevel),                  // 日志级别
+			IgnoreRecordNotFoundError: DBConnConfigurator.IgnoreRecordNotFoundError,                  // 忽略ErrRecordNotFound（记录未找到）错误
+			Colorful:                  DBConnConfigurator.Colorful,                                   // 使用彩色打印
 		},
 	)
 
@@ -38,14 +37,14 @@ func DBInit() {
 		Logger: myLogger,
 	})
 
-	//连接数据库失败，则重试10次,如果10次再不行，报错退出
-	for i := 0; i < 10; i++ {
+	//连接数据库失败，则重试3次,如果3次再不行，报错退出
+	for i := 0; i < 3; i++ {
 		if Err == nil {
 			break
 		}
-		log.Println("数据库连接失败", Err)
-		//sleep 5秒 以免不断尝试消耗资源
-		time.Sleep(time.Second * 5)
+		log.Println("数据库连接失败,将在5秒后重试，错误为:", Err)
+		//sleep 3秒
+		time.Sleep(time.Second * 3)
 		DB, Err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	}
 
@@ -59,13 +58,13 @@ func DBInit() {
 	}
 
 	// SetMaxIdleConns 设置空闲连接池中连接的最大数量
-	sqlDB.SetMaxIdleConns(DBConnect.MaxIdleConns)
+	sqlDB.SetMaxIdleConns(DBConnConfigurator.MaxIdleConns)
 
 	// SetMaxOpenConns 设置打开数据库连接的最大数量。
-	sqlDB.SetMaxOpenConns(DBConnect.MaxOpenConns)
+	sqlDB.SetMaxOpenConns(DBConnConfigurator.MaxOpenConns)
 
 	// SetConnMaxLifetime 设置了连接可复用的最大时间。
-	sqlDB.SetConnMaxLifetime(time.Minute * time.Duration(DBConnect.ConnMaxLifetime))
+	sqlDB.SetConnMaxLifetime(time.Minute * time.Duration(DBConnConfigurator.ConnMaxLifetime))
 }
 
 /*
