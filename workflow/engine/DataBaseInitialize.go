@@ -1,18 +1,57 @@
 package engine
 
-import ."github.com/Bunny3th/easy-workflow/workflow/database"
+import . "github.com/Bunny3th/easy-workflow/workflow/database"
 
 //初始化数据库表
-func DatabaseInitialize(){
-	DB.AutoMigrate(&ProcDef{})
-	DB.AutoMigrate(&HistProcDef{})
-	DB.AutoMigrate(&ProcInst{})
-	DB.AutoMigrate(&HistProcInst{})
-	DB.AutoMigrate(&ProcTask{})
-	DB.AutoMigrate(&HistProcTask{})
-	DB.AutoMigrate(&ProcExecution{})
-	DB.AutoMigrate(&HistProcExecution{})
-	DB.AutoMigrate(&ProcInstVariable{})
-	DB.AutoMigrate(&HistProcInstVariable{})
+func DatabaseInitialize() error {
+	err:=DB.AutoMigrate(&ProcDef{})
+	if err != nil {
+		return err
+	}
 
+	err = DB.AutoMigrate(&HistProcDef{})
+	if err != nil {
+		return err
+	}
+
+	err = DB.AutoMigrate(&ProcInst{})
+	if err != nil {
+		return err
+	}
+
+	err = DB.AutoMigrate(&HistProcInst{})
+	if err != nil {
+		return err
+	}
+
+	err = DB.AutoMigrate(&ProcTask{})
+	if err != nil {
+		return err
+	}
+
+	err = DB.AutoMigrate(&HistProcTask{})
+	if err != nil {
+		return err
+	}
+
+	err = DB.AutoMigrate(&ProcExecution{})
+	if err != nil {
+		return err
+	}
+
+	err = DB.AutoMigrate(&HistProcExecution{})
+	if err != nil {
+		return err
+	}
+
+	err = DB.AutoMigrate(&ProcInstVariable{})
+	if err != nil {
+		return err
+	}
+
+	err = DB.AutoMigrate(&HistProcInstVariable{})
+	if err != nil {
+		return err
+	}
+	return nil
 }

@@ -7,20 +7,28 @@ import (
 type DataBaseConfigurator func()
 
 //传入参数
-//1、DBConfigurator:数据库配置方法，方法签名func(Params ...string)
+//1、DBConnConfigurator:数据库连接配置方法，方法签名func()
 //2、ignoreEventError:是否忽略事件错误
 //3、EventStructs:动态参数，事件函数所关联的struct，可传多个
-func StartWorkFlow(DBConfigurator DataBaseConfigurator,ignoreEventError bool,EventStructs ...any) {
-	//配置数据库
-	DBConfigurator()
+func StartWorkFlow(DBConnConfigurator DataBaseConfigurator, ignoreEventError bool, EventStructs ...any) {
+	//配置数据库连接选项
+	DBConnConfigurator()
 
-	//数据库连接初始化
-	DBInit()
+	//数据库连接
+	err := DBConnect()
+	if err != nil {
+		log.Fatalln("easy workflow 数据库连接失败，错误:", err)
+	}
 
-	////初始化数据库表
-	DatabaseInitialize()
+	//初始化数据库表
+	err = DatabaseInitialize()
+	if err != nil {
+		log.Fatalln("easy workflow 初始化数据表失败，错误:", err)
+	}
 
-	IgnoreEventError=ignoreEventError
+	//是否忽略事件错误
+	IgnoreEventError = ignoreEventError
+
 	//注册事件函数
 	for _, s := range EventStructs {
 		if s != nil {

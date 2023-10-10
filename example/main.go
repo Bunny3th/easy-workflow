@@ -8,14 +8,14 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func DBConfig() {
+func DBConnConfig() {
 	DBConnConfigurator.DBConnectString = "goeasy:sNd%sLDjd*12@tcp(172.16.18.18:3306)/test_workflow?charset=utf8mb4&parseTime=True&loc=Local"
 	DBConnConfigurator.LogLevel = 4 //日志级别(默认3) 1:Silent 2:Error 3:Warn 4:Info
 }
 
 func main() {
 	//----------------------------开启流程引擎----------------------------
-	StartWorkFlow(DBConfig,false,&MyEvent{})
+	StartWorkFlow(DBConnConfig,false,&MyEvent{})
 
 	//----------------------------生成一个示例流程----------------------------
 	CreateExampleProcess()

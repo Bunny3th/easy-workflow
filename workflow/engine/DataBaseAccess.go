@@ -13,9 +13,8 @@ import (
 //gorm参考文档 https://gorm.cn/zh_CN/docs/
 
 var DB *gorm.DB
-var Err error
 
-func DBInit() {
+func DBConnect() error{
 	//有关gorm.Config，可查看文档 https://gorm.cn/zh_CN/docs/gorm_config.html
 	dsn := DBConnConfigurator.DBConnectString
 	//gorm的默认日志是只打印错误和慢SQL,这里可以自定义日志级别
@@ -29,32 +28,24 @@ func DBInit() {
 		},
 	)
 
-	DB, Err = gorm.Open(mysql.Open(dsn), &gorm.Config{
+	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
 		NamingStrategy: schema.NamingStrategy{
 			TablePrefix:   "",   //表前缀.如前缀为t_，则`User` 的表名应该是 `t_users`
 			SingularTable: true, //使用单数表名，启用该选项，此时，`User` 的表名应该是 `user`
 		},
 		Logger: myLogger,
 	})
-
-	//连接数据库失败，则重试3次,如果3次再不行，报错退出
-	for i := 0; i < 3; i++ {
-		if Err == nil {
-			break
-		}
-		log.Println("数据库连接失败,将在5秒后重试，错误为:", Err)
-		//sleep 3秒
-		time.Sleep(time.Second * 3)
-		DB, Err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	if err!=nil{
+		return err
 	}
 
-	if Err != nil {
-		log.Fatalln(Err)
-	}
+	//将局部变量db赋值给pkg变量DB
+	//why?因为假设这么写 DB,err:= gorm.Open(),此时的DB只是一个新生成的局部变量，而非给全局变量DB赋值
+	DB=db
 
 	sqlDB, err := DB.DB()
 	if err != nil {
-		log.Fatalln(err)
+		return err
 	}
 
 	// SetMaxIdleConns 设置空闲连接池中连接的最大数量
@@ -65,6 +56,8 @@ func DBInit() {
 
 	// SetConnMaxLifetime 设置了连接可复用的最大时间。
 	sqlDB.SetConnMaxLifetime(time.Minute * time.Duration(DBConnConfigurator.ConnMaxLifetime))
+
+	return nil
 }
 
 /*
