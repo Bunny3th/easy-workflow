@@ -5,18 +5,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
+	"strings"
 )
-
-//这是一个增效用的方法:
-//执行SQL，将结果集填充到指定struct
-//struct以json方式返回
-func ExecSQLThenReturnResponse(c *gin.Context, SQL string, Result interface{}, Params ...interface{}) {
-	if result, err := ExecSQL(SQL, Result, Params...); err == nil {
-		c.JSON(200, result)
-	} else {
-		c.JSON(400, err.Error()) //http code:400 错误请求 — 请求中有语法问题，或不能满足请求。
-	}
-}
 
 /*
 swagger注解描述 https://github.com/swaggo/swag/blob/master/README_zh-CN.md
@@ -282,6 +272,31 @@ func Task_Reject(c *gin.Context) {
 		c.JSON(400, err.Error())
 	}
 }
+
+// @Summary      将任务转交给他人处理
+// @Description
+// @Tags         任务
+// @Produce      json
+// @Param        TaskID  formData int  true  "任务ID" example(1)
+// @Param        Users  formData string  true  "用户,多个用户使用逗号分隔" example("U001,U002,U003")
+// @Success      200  {object}  string "ok"
+// @Failure      400  {object}  string 报错信息
+// @Router       /task/transfer [post]
+func Task_Transfer(c *gin.Context) {
+	TaskID, err := strconv.Atoi(c.PostForm("TaskID"))
+	if err != nil {
+		c.AbortWithStatusJSON(400, err.Error())
+	}
+	Users:=strings.Split(c.PostForm("Users"),",")
+
+
+	if err := TaskTransfer(TaskID,Users); err == nil {
+		c.JSON(200, "ok")
+	} else {
+		c.JSON(400, err.Error())
+	}
+}
+
 
 // @Summary      获取待办任务
 // @Description  返回的是任务数组

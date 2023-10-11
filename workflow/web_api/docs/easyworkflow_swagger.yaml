@@ -138,6 +138,25 @@ definitions:
     - TaskNode
     - GateWayNode
     - EndNode
+  model.Process:
+    properties:
+      nodes:
+        description: 节点
+        items:
+          $ref: '#/definitions/model.Node'
+        type: array
+      processName:
+        description: 流程名
+        type: string
+      revokeEvents:
+        description: 流程撤销事件.在流程实例撤销时触发
+        items:
+          type: string
+        type: array
+      source:
+        description: 来源(引擎可能被多个系统、组件等使用，这里记下从哪个来源创建的流程
+        type: string
+    type: object
   model.Task:
     properties:
       batchCode:
@@ -230,11 +249,9 @@ paths:
       - application/json
       responses:
         "200":
-          description: Node数组
+          description: 流程定义
           schema:
-            items:
-              $ref: '#/definitions/model.Node'
-            type: array
+            $ref: '#/definitions/model.Process'
         "400":
           description: Bad Request
           schema:
@@ -715,6 +732,35 @@ paths:
           schema:
             type: string
       summary: 获取待办任务
+      tags:
+      - 任务
+  /task/transfer:
+    post:
+      parameters:
+      - description: 任务ID
+        example: 1
+        in: formData
+        name: TaskID
+        required: true
+        type: integer
+      - description: 用户,多个用户使用逗号分隔
+        example: '"U001,U002,U003"'
+        in: formData
+        name: Users
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ok
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+      summary: 将任务转交给他人处理
       tags:
       - 任务
   /task/upstream:

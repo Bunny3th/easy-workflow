@@ -33,9 +33,9 @@ func NewRouter(engine *gin.Engine, ApiBasePath string, ShowSwaggerDoc bool, Swag
 
 	router.POST("/task/pass", Task_Pass)
 	router.POST("/task/pass/directly", Task_Pass_DirectlyToWhoRejectedMe)
-
 	router.POST("/task/reject", Task_Reject)
 	router.POST("/task/reject/free", Task_FreeRejectToUpstreamNode)
+	router.POST("/task/transfer",Task_Transfer)
 	router.GET("/task/todo", Task_ToDoList)
 	router.GET("/task/finished", Task_FinishedList)
 	router.GET("/task/upstream", Task_UpstreamNodeList)

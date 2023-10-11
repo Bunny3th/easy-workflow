@@ -74,3 +74,28 @@ func ExpressionEvaluator(expression string) (bool, error) {
 	return ok, nil
 }
 
+//利用Map，对数组/切片数据做去重处理
+func MakeUnique(List ...[]string) []string {
+	set := make(map[string]string)
+	var unique []string
+
+	for _, list := range List {
+		for _, item := range list {
+			set[item] = ""
+		}
+	}
+
+	for k, _ := range set {
+		unique = append(unique, k)
+	}
+
+	return unique
+}
+
+//从切片中删除对应Index的项
+func RemoveFromSlice[T any](Slice []T, RemoveItemIndex int) []T{
+	NewSlice := append(Slice[:RemoveItemIndex], Slice[RemoveItemIndex+1:]...)
+	return NewSlice
+}
+
+

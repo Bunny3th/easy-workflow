@@ -110,11 +110,8 @@ func VerifyEvents(ProcessID int, Nodes ProcNodes) error {
 		nodeEvents = append(nodeEvents, node.TaskFinishEvents...)
 	}
 
-	//各个节点中事件可能有重复的，使用map去重
-	nodeEventsSet := make(map[string]string)
-	for _, event := range nodeEvents {
-		nodeEventsSet[event] = event
-	}
+	//各个节点中事件可能有重复的，需做去重
+	nodeEventsSet:=MakeUnique(nodeEvents)
 
 	//验证节点事件
 	for _, event := range nodeEventsSet {

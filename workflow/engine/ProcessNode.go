@@ -94,10 +94,10 @@ func EndNodeHandle(ProcessInstanceID int, Status int) error {
 	}
 
 	//将task表中任务归档
-	result = tx.Exec("INSERT INTO hist_proc_task(task_id,proc_id,proc_inst_id,\n" +
+	result = tx.Exec("INSERT INTO hist_proc_task(task_id,proc_id,proc_inst_id,\n"+
 		"business_id,starter,node_id,node_name,prev_node_id,is_cosigned,\n"+
 		"batch_code,user_id,`status`,is_finished,`comment`,proc_inst_create_time,create_time,finished_time)\n "+
-		"SELECT id,proc_id,proc_inst_id,business_id,starter,\n" +
+		"SELECT id,proc_id,proc_inst_id,business_id,starter,\n"+
 		"node_id,node_name,prev_node_id,is_cosigned,batch_code,user_id,`status`,\n"+
 		"is_finished,`comment`,proc_inst_create_time,create_time,finished_time \n"+
 		"FROM proc_task WHERE proc_inst_id=?;", ProcessInstanceID)
@@ -160,7 +160,7 @@ func EndNodeHandle(ProcessInstanceID int, Status int) error {
 //任务节点处理 返回生成的taskid数组
 func TaskNodeHandle(ProcessInstanceID int, CurrentNode *Node, PrevNode Node) ([]int, error) {
 	//获取节点用户
-	users,err:=resolveNodeUser(ProcessInstanceID,*CurrentNode)
+	users, err := resolveNodeUser(ProcessInstanceID, *CurrentNode)
 	if err != nil {
 		return nil, err
 	}
@@ -241,13 +241,8 @@ func GateWayNodeHandle(ProcessInstanceID int, CurrentNode *Node, PrevTaskNode No
 	}
 
 	//-------将conditionNodeIDs和InevitableNodes中的值一起放入nextNodeIDs，这是真正要处理的节点ID-------
-	var nextNodeIDs = make(map[string]string) //这里用map主要是为了去重(节点ID如果重复，意味着一个节点要做N次处理，这是灾难)
-	for _, v := range conditionNodeIDs {
-		nextNodeIDs[v] = ""
-	}
-	for _, v := range CurrentNode.GWConfig.InevitableNodes {
-		nextNodeIDs[v] = ""
-	}
+	//去重(节点ID如果重复，意味着一个节点要做N次处理，这是灾难)
+	nextNodeIDs := MakeUnique(conditionNodeIDs, CurrentNode.GWConfig.InevitableNodes)
 
 	//这里处理节点结束事件
 	err := RunNodeEvents(CurrentNode.NodeEndEvents, ProcessInstanceID, CurrentNode, PrevTaskNode)
@@ -256,7 +251,7 @@ func GateWayNodeHandle(ProcessInstanceID int, CurrentNode *Node, PrevTaskNode No
 	}
 
 	//------------------------------对下级节点进行处理------------------------------
-	for nodeID, _ := range nextNodeIDs {
+	for _, nodeID := range nextNodeIDs {
 		NextNode, err := GetInstanceNode(ProcessInstanceID, nodeID)
 		if err != nil {
 			return err
@@ -320,7 +315,7 @@ func InstanceNodeIsFinish(ProcessInstanceID int, NodeID string) (bool, error) {
 //解析节点用户
 //1、获得用户变量
 //2、用户去重
-func resolveNodeUser(ProcessInstanceID int,node Node) ([]string,error){
+func resolveNodeUser(ProcessInstanceID int, node Node) ([]string, error) {
 	//匹配节点用户变量
 	kv, err := ResolveVariables(ProcessInstanceID, node.UserIDs)
 	if err != nil {
@@ -339,5 +334,5 @@ func resolveNodeUser(ProcessInstanceID int,node Node) ([]string,error){
 		users = append(users, k)
 	}
 
-	return users,nil
+	return users, nil
 }

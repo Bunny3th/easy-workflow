@@ -26,12 +26,9 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Node数组",
+                        "description": "流程定义",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/model.Node"
-                            }
+                            "$ref": "#/definitions/model.Process"
                         }
                     },
                     "400": {
@@ -741,6 +738,49 @@
                 }
             }
         },
+        "/task/transfer": {
+            "post": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "任务"
+                ],
+                "summary": "将任务转交给他人处理",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "example": 1,
+                        "description": "任务ID",
+                        "name": "TaskID",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "example": "\"U001,U002,U003\"",
+                        "description": "用户,多个用户使用逗号分隔",
+                        "name": "Users",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "ok",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/task/upstream": {
             "get": {
                 "description": "此功能为自由驳回使用",
@@ -979,6 +1019,33 @@
                 "GateWayNode",
                 "EndNode"
             ]
+        },
+        "model.Process": {
+            "type": "object",
+            "properties": {
+                "nodes": {
+                    "description": "节点",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.Node"
+                    }
+                },
+                "processName": {
+                    "description": "流程名",
+                    "type": "string"
+                },
+                "revokeEvents": {
+                    "description": "流程撤销事件.在流程实例撤销时触发",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "source": {
+                    "description": "来源(引擎可能被多个系统、组件等使用，这里记下从哪个来源创建的流程",
+                    "type": "string"
+                }
+            }
         },
         "model.Task": {
             "type": "object",

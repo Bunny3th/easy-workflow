@@ -12,22 +12,37 @@ import (
 //一个节点的上级节点可能不是一个，节点驳回的时候，就需要知道往哪个节点驳回,所以需要记录上一个节点是谁
 func CreateTask(ProcessInstanceID int, NodeID string, PrevNodeID string, UserIDs []string) ([]int, error) {
 
-	/*考虑以下情况：
-	      |--C
-	A--B--|
-	      |--D
-	假如C驳回到B,B重新提交，D是不是要处理两遍任务？（第1遍是B初次提交后的任务，第2遍是B再次提交后重新生成的任务）
-	所以，在同一实例中，如果某一个节点任务还未finish，这个节点任务就不应该再次被生成
+	/*
+		      |--C
+		A--B--|
+		      |--D
+		假设流程如上，考虑这种情况：
+		1、目前流程已到节点C、D
+		2、假如C驳回到B,B重新提交，按照流程定义，D节点处会做一次任务生成
+		3、但假设D节点中处理人张三原有任务D1尚未审批，又来一个同样节点的任务D2，岂不是尴尬？（第1遍是B初次提交后的任务，第2遍是B再次提交后重新生成的任务）
+		所以，在同一实例中，如果某一个节点中处理人A有任务还未finish，这个节点重新生成任务时，A的任务就没有必要再次被生成
 	*/
-	var task Task
-	result := DB.Raw("SELECT * FROM proc_task "+
-		"WHERE proc_inst_id=? AND node_id=? AND is_finished=0 "+
-		"ORDER BY id LIMIT 1", ProcessInstanceID, NodeID).Scan(&task)
+	type NotFinishUser struct {
+		UserID string `gorm:"column:user_id"`
+	}
+	var notFinishUsers []NotFinishUser
+	result := DB.Raw("SELECT DISTINCT user_id FROM proc_task "+
+		"WHERE proc_inst_id=? AND node_id=? AND is_finished=0 ",
+		ProcessInstanceID, NodeID).Scan(&notFinishUsers)
 	if result.Error != nil {
 		return nil, result.Error
 	}
-	if task.TaskID != 0 {
-		return nil, nil
+
+	//先对传入用户做去重
+	userIDs := MakeUnique(UserIDs)
+
+	//而后去掉本节点中未结束任务的用户
+	for i, u := range userIDs {
+		for _, nu := range notFinishUsers {
+			if u == nu.UserID {
+				userIDs = RemoveFromSlice[string](userIDs, i)
+			}
+		}
 	}
 
 	//获取流程ID
@@ -229,6 +244,60 @@ func processTask(TaskID int, Comment string, VariableJson string, option taskOpt
 		taskRevoke(TaskID)
 		return err
 	}
+
+	return nil
+}
+
+//将任务转交给其他用户处理
+//此功能由常继百同学提出，在此感谢他的建议
+func TaskTransfer(TaskID int, Users []string) error {
+	//传入用户去重
+	users := MakeUnique(Users)
+	if len(users) < 1 {
+		return errors.New("转让任务操作必须指定至少一个候选人")
+	}
+
+	//获得task信息
+	taskInfo, err := GetTaskInfo(TaskID)
+	if err != nil {
+		return err
+	}
+
+	//已完成任务不能转交
+	if taskInfo.IsFinished == 1 {
+		return errors.New("任务已完成，无法转交")
+	}
+
+	//思考：考虑会签情况下，如果仅仅设置为结束，则节点由于永远不会达到"任务总数与通过总人数一致"，成为死节点
+	//所以，转交任务需将原任务删除
+
+	//开启事务
+	tx := DB.Begin()
+
+	//首先删除任务
+	result := tx.Exec("DELETE FROM proc_task WHERE id=?", TaskID)
+	if result.Error != nil {
+		tx.Rollback()
+		return result.Error
+	}
+
+	//生成新任务数据
+	var tasks []database.ProcTask
+	for _, u := range users {
+		tasks = append(tasks, database.ProcTask{ProcID: taskInfo.ProcID, ProcInstID: taskInfo.ProcInstID,
+			ProcInstCreateTime: *taskInfo.ProcInstCreateTime, BusinessID: taskInfo.BusinessID,
+			Starter: taskInfo.Starter, NodeID: taskInfo.NodeID, NodeName: taskInfo.NodeName,
+			PrevNodeID: taskInfo.PrevNodeID, IsCosigned: taskInfo.IsCosigned, BatchCode: taskInfo.BatchCode, UserID: u})
+	}
+
+	//新Task存入数据库
+	result = tx.Create(&tasks)
+	if result.Error != nil {
+		tx.Rollback()
+		return result.Error
+	}
+
+	tx.Commit()
 
 	return nil
 }
