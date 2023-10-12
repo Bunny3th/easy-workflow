@@ -52,26 +52,24 @@ go get github.com/Bunny3th/easy-workflow@版本号
 
 ### 开启引擎  
 ```go
-import (
-   . "github.com/Bunny3th/easy-workflow/workflow/engine"
-)
+import "github.com/Bunny3th/easy-workflow/workflow/engine"
 
 func DBConnConfig() {
-	DBConnConfigurator.DBConnectString = "数据库账号:密码@tcp(地址:端口)/数据库名称?charset=utf8mb4&parseTime=True&loc=Local"	
+	engine.DBConnConfigurator.DBConnectString = "数据库账号:密码@tcp(地址:端口)/数据库名称?charset=utf8mb4&parseTime=True&loc=Local"	
 }
 
 func main() {
    //开启工作流引擎
-   StartWorkFlow(DBConnConfig, false, nil)
+   engine.StartWorkFlow(DBConnConfig, false, nil)
 }
 ```
 StartWorkFlow函数参数定义：  
 ```go
 func StartWorkFlow(DBConnConfigurator DataBaseConfigurator, ignoreEventError bool, EventStructs ...any)
 ```
-DBConnConfigurator:数据库连接配置器,完整配置如下:
+DBConnConfigurator:数据库连接配置器,完整配置func如下:
 ```go
-func DBConfig() {
+func DBConnConfig() {
    DBConnConfigurator.DBConnectString = "连接字符串"        //必须设置         数据库连接字符串
    DBConnConfigurator.MaxIdleConns=100                     //非必设,默认10    空闲连接池中连接的最大数量
    DBConnConfigurator.MaxOpenConns=200                     //非必设,默认100   打开数据库连接的最大数量
@@ -105,14 +103,16 @@ func (e *MyEvent) MyEvent_End(ProcessInstanceID int, CurrentNode *Node, PrevNode
 2、StartWorkFlow传入事件Struct时，必须传入指针，如：StartWorkFlow(DBConnConfig,false,&MyEvent{})  
 ### 引擎方法说明  
 **first import github.com/Bunny3th/easy-workflow/workflow/engine**  
-**1. 流程定义保存/升级**   
+   
++ **流程定义保存/升级**  
 func ProcessSave(Resource string, CreateUserID string) (int, error)  
-**传入参数说明:**      
-Resource:流程定义资源(本项目中为Json)    
-CreateUserID:流程定义者ID   
-**返回参数说明:**    
-流程ID、error  
-未完，编写中...   
+  + 传入参数说明:      
+    + Resource:流程定义资源(本项目中为Json)      
+    + CreateUserID:流程定义者ID  
+  + 返回参数说明:    
+    + 流程ID
+    + error  
++ 未完，编写中...   
 
 
 
