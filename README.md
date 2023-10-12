@@ -63,11 +63,12 @@ func main() {
    engine.StartWorkFlow(DBConnConfig, false, nil)
 }
 ```
-StartWorkFlow函数参数定义：  
+StartWorkFlow方法：  
 ```go
 func StartWorkFlow(DBConnConfigurator DataBaseConfigurator, ignoreEventError bool, EventStructs ...any)
 ```
-DBConnConfigurator:数据库连接配置器,完整配置func如下:
++ 传入参数定义
+  + DBConnConfigurator:数据库连接配置器,完整配置func如下:
 ```go
 func DBConnConfig() {
    DBConnConfigurator.DBConnectString = "连接字符串"        //必须设置         数据库连接字符串
@@ -81,8 +82,8 @@ func DBConnConfig() {
 }
 ```
 
-ignoreEventError：在事件执行时，是否忽略其报错。事件出错可能导致流程无法运行,此选项设置为true，则忽略事件出错，让流程继续  
-EventStructs：作者使用反射运行事件方法，故需将事件方法“挂”在Struct上传入。若流程定义中无需运行事件，则直接传nil即可。事件代码示例:  
+  + ignoreEventError：在事件执行时，是否忽略其报错。事件出错可能导致流程无法运行,此选项设置为true，则忽略事件出错，让流程继续  
+  + EventStructs：作者使用反射运行事件方法，故需将事件方法“挂”在Struct上传入。若流程定义中无需运行事件，则直接传nil即可。事件代码示例:  
 ```go
 //示例事件
 type MyEvent struct{}
