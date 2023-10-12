@@ -69,7 +69,7 @@ StartWorkFlow函数参数定义：
 ```go
 func StartWorkFlow(DBConnConfigurator DataBaseConfigurator, ignoreEventError bool, EventStructs ...any)
 ```
-DBConnConfigurator:数据库配置方法,完整配置项如下:
+DBConnConfigurator:数据库连接配置器,完整配置如下:
 ```go
 func DBConfig() {
    DBConnConfigurator.DBConnectString = "连接字符串"        //必须设置         数据库连接字符串
