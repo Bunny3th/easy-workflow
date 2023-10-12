@@ -67,21 +67,20 @@ StartWorkFlow方法：
 ```go
 func StartWorkFlow(DBConnConfigurator DataBaseConfigurator, ignoreEventError bool, EventStructs ...any)
 ```
-+ 传入参数定义
+传入参数定义
   + DBConnConfigurator:数据库连接配置器,完整配置func如下:
 ```go
-func DBConnConfig() {
-   DBConnConfigurator.DBConnectString = "连接字符串"        //必须设置         数据库连接字符串
-   DBConnConfigurator.MaxIdleConns=100                     //非必设,默认10    空闲连接池中连接的最大数量
-   DBConnConfigurator.MaxOpenConns=200                     //非必设,默认100   打开数据库连接的最大数量
-   DBConnConfigurator.ConnMaxLifetime=200                  //非必设,默认3600  连接可复用的最大时间（分钟）
-   DBConnConfigurator.SlowThreshold=3                      //非必设,默认1     慢SQL阈值(秒)
-   DBConnConfigurator.LogLevel=4                           //非必设,默认3     日志级别 1:Silent  2:Error 3:Warn 4:Info
-   DBConnConfigurator.IgnoreRecordNotFoundError=false      //非必设,默认true  忽略ErrRecordNotFound（记录未找到）错误
-   DBConnConfigurator.Colorful=false                       //非必设,默认true  使用彩色打印
-}
+  func DBConnConfig() {
+     DBConnConfigurator.DBConnectString = "连接字符串"        //必须设置         数据库连接字符串
+     DBConnConfigurator.MaxIdleConns=100                     //非必设,默认10    空闲连接池中连接的最大数量
+     DBConnConfigurator.MaxOpenConns=200                     //非必设,默认100   打开数据库连接的最大数量
+     DBConnConfigurator.ConnMaxLifetime=200                  //非必设,默认3600  连接可复用的最大时间（分钟）
+     DBConnConfigurator.SlowThreshold=3                      //非必设,默认1     慢SQL阈值(秒)
+     DBConnConfigurator.LogLevel=4                           //非必设,默认3     日志级别 1:Silent  2:Error 3:Warn 4:Info
+     DBConnConfigurator.IgnoreRecordNotFoundError=false      //非必设,默认true  忽略ErrRecordNotFound（记录未找到）错误
+     DBConnConfigurator.Colorful=false                       //非必设,默认true  使用彩色打印
+  }
 ```
-
   + ignoreEventError：在事件执行时，是否忽略其报错。事件出错可能导致流程无法运行,此选项设置为true，则忽略事件出错，让流程继续  
   + EventStructs：作者使用反射运行事件方法，故需将事件方法“挂”在Struct上传入。若流程定义中无需运行事件，则直接传nil即可。事件代码示例:  
 ```go
