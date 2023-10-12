@@ -57,27 +57,12 @@ import (
 )
 
 func DBConnConfig() {
-	DBConnConfigurator.DBConnectString = "数据库账号:密码@tcp(地址:端口)/数据库名称?charset=utf8mb4&parseTime=True&loc=Local"
-	DBConnConfigurator.LogLevel = 4 //日志级别(默认3) 1:Silent 2:Error 3:Warn 4:Info
-}
-
-//示例事件
-type MyEvent struct{}
-
-//节点结束事件
-func (e *MyEvent) MyEvent_End(ProcessInstanceID int, CurrentNode *Node, PrevNode Node) error {
-	//示例:在节点结束时打印信息
-	processName, err := GetProcessNameByInstanceID(ProcessInstanceID)
-	if err != nil {
-		return err
-	}
-	log.Printf("--------流程[%s]节点[%s]结束-------", processName, CurrentNode.NodeName)
-	return nil
+	DBConnConfigurator.DBConnectString = "数据库账号:密码@tcp(地址:端口)/数据库名称?charset=utf8mb4&parseTime=True&loc=Local"	
 }
 
 func main() {
    //开启工作流引擎
-   StartWorkFlow(DBConnConfig, false, &MyEvent{})
+   StartWorkFlow(DBConnConfig, false, nil)
 }
 ```
 StartWorkFlow函数参数定义：  
@@ -99,7 +84,27 @@ func DBConfig() {
 ```
 
 ignoreEventError：在事件执行时，是否忽略其报错。事件出错可能导致流程无法运行,此选项设置为true，则忽略事件出错，让流程继续  
-EventStructs：作者使用反射运行事件方法，故需将事件方法“挂”在Struct上传入。若流程定义中无需运行事件，则直接传nil即可。
+EventStructs：作者使用反射运行事件方法，故需将事件方法“挂”在Struct上传入。若流程定义中无需运行事件，则直接传nil即可。事件代码示例:  
+```go
+//示例事件
+type MyEvent struct{}
+
+//节点结束事件
+func (e *MyEvent) MyEvent_End(ProcessInstanceID int, CurrentNode *Node, PrevNode Node) error {
+	//示例:在节点结束时打印信息
+	processName, err := GetProcessNameByInstanceID(ProcessInstanceID)
+	if err != nil {
+		return err
+	}
+	log.Printf("--------流程[%s]节点[%s]结束-------", processName, CurrentNode.NodeName)
+	return nil
+}
+```  
+**注意事项**  
+1、事件方法接收者必须是指针。如上示方法MyEvent_End,其方法接收者为*MyEvent  
+2、StartWorkFlow传入事件Struct时，必须传入指针，如：StartWorkFlow(DBConnConfig,false,&MyEvent{})  
+### 引擎方法说明  
+编写中...   
 
 
 
