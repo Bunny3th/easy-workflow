@@ -311,7 +311,7 @@ paths:
           description: Bad Request
           schema:
             type: string
-      summary: 流程生成/升级
+      summary: 流程定义保存/升级
       tags:
       - 流程定义
   /inst/revoke:

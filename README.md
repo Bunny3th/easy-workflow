@@ -104,6 +104,14 @@ func (e *MyEvent) MyEvent_End(ProcessInstanceID int, CurrentNode *Node, PrevNode
 1、事件方法接收者必须是指针。如上示方法MyEvent_End,其方法接收者为*MyEvent  
 2、StartWorkFlow传入事件Struct时，必须传入指针，如：StartWorkFlow(DBConnConfig,false,&MyEvent{})  
 ### 引擎方法说明  
+**first import github.com/Bunny3th/easy-workflow/workflow/engine**  
+1. 流程定义保存/升级  
+func ProcessSave(Resource string, CreateUserID string) (int, error)  
+传入参数说明:    
+Resource:流程定义资源(本项目中为Json)    
+CreateUserID:流程定义者ID   
+返回参数说明:  
+流程ID、error  
 编写中...   
 
 

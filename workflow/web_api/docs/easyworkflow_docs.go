@@ -99,7 +99,7 @@ const docTemplateeasyworkflow = `{
                 "tags": [
                     "流程定义"
                 ],
-                "summary": "流程生成/升级",
+                "summary": "流程定义保存/升级",
                 "parameters": [
                     {
                         "type": "string",

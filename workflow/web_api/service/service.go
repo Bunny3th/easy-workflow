@@ -33,7 +33,7 @@ swagger注解描述 https://github.com/swaggo/swag/blob/master/README_zh-CN.md
 @Router	路由，从左到右分别为：路由地址，HTTP 方法
 */
 
-// @Summary      流程生成/升级
+// @Summary      流程定义保存/升级
 // @Description
 // @Tags         流程定义
 // @Produce      json
