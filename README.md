@@ -38,5 +38,63 @@ c、任务完成事件与节点事件的区别在于：一个节点可能有多�
 
 ## 开始使用  
 Tips:作者强烈建议阅读example中代码示例。注释比代码多一向是作者的风格，基本看完example，即可知引擎使用方法。    
+### 下载  
+方法一:  
+在go.mod文件中添加  github.com/Bunny3th/easy-workflow 版本号    
+
+方法二:    
+go get github.com/Bunny3th/easy-workflow@版本号  
+
+### 开启引擎  
+```go
+import (
+   . "github.com/Bunny3th/easy-workflow/workflow/engine"
+)
+
+func DBConnConfig() {
+	DBConnConfigurator.DBConnectString = "goeasy:sNd%sLDjd*12@tcp(172.16.18.18:3306)/test_workflow?charset=utf8mb4&parseTime=True&loc=Local"
+	DBConnConfigurator.LogLevel = 4 //日志级别(默认3) 1:Silent 2:Error 3:Warn 4:Info
+}
+
+//示例事件
+type MyEvent struct{}
+
+//节点结束事件
+func (e *MyEvent) MyEvent_End(ProcessInstanceID int, CurrentNode *Node, PrevNode Node) error {
+	//示例:在节点结束时打印信息
+	processName, err := GetProcessNameByInstanceID(ProcessInstanceID)
+	if err != nil {
+		return err
+	}
+	log.Printf("--------流程[%s]节点[%s]结束-------", processName, CurrentNode.NodeName)
+	return nil
+}
+
+func main() {
+   //开启工作流引擎
+   StartWorkFlow(DBConnConfig, false, &MyEvent{})
+}
+```
+StartWorkFlow函数参数定义：  
+```go
+func StartWorkFlow(DBConnConfigurator DataBaseConfigurator, ignoreEventError bool, EventStructs ...any)
+```
+DBConnConfigurator:数据库配置方法,完整配置项如下:
+```go
+func DBConfig() {
+   DBConnConfigurator.DBConnectString = "数据库连接字符串"    //必须设置         数据库连接
+   DBConnConfigurator.MaxIdleConns=100                     //非必设,默认10    空闲连接池中连接的最大数量
+   DBConnConfigurator.MaxOpenConns=200                     //非必设,默认100   打开数据库连接的最大数量
+   DBConnConfigurator.ConnMaxLifetime=200                  //非必设,默认3600  连接可复用的最大时间（分钟）
+   DBConnConfigurator.SlowThreshold=3                      //非必设,默认1     慢SQL阈值(秒)
+   DBConnConfigurator.LogLevel=4                           //非必设,默认3     日志级别 1:Silent  2:Error 3:Warn 4:Info
+   DBConnConfigurator.IgnoreRecordNotFoundError=false      //非必设,默认true  忽略ErrRecordNotFound（记录未找到）错误
+   DBConnConfigurator.Colorful=false                       //非必设,默认true  使用彩色打印
+}
+```
+ignoreEventError：在事件执行时，是否忽略其报错。事件出错可能导致流程无法运行,此选项设置为true，则忽略事件出错，让流程继续  
+EventStructs：作者使用反射运行事件方法，故需将事件方法“挂”在Struct上传入。若流程定义中无需运行事件，则直接传nil即可。
+
+
 
 
