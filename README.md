@@ -103,7 +103,7 @@ func (e *MyEvent) MyEvent_End(ProcessInstanceID int, CurrentNode *Node, PrevNode
 2、StartWorkFlow传入事件Struct时，必须传入指针，如：StartWorkFlow(DBConnConfig,false,&MyEvent{})  
 ### 引擎方法说明  
 **first import github.com/Bunny3th/easy-workflow/workflow/engine**  
-   
+#### 流程定义相关方法   
 + **流程定义保存/升级**  
 func ProcessSave(Resource string, CreateUserID string) (int, error)  
   + 传入参数说明:      
@@ -111,7 +111,17 @@ func ProcessSave(Resource string, CreateUserID string) (int, error)
     + CreateUserID:流程定义者ID  
   + 返回参数说明:    
     + 流程ID
+    + error   
+      
++ **获取特定source下所有流程**
+func GetProcessList(Source string) ([]database.ProcDef, error)  
+  + 传入参数说明
+    + Source:引擎可能被多个系统、组件等使用，source创建的流程的来源,比如"考勤系统"、“人事系统”  
+  + 返回参数说明:  
+    + []database.ProcDef: 流程定义表结构，位于 github.com/Bunny3th/easy-workflow/workflow/database包下
     + error  
+      
+      
 + 未完，编写中...   
 
 

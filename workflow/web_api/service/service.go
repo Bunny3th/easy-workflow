@@ -81,7 +81,8 @@ func ProcDef_ListBySource(c *gin.Context) {
 func ProcDef_GetProcDefByID(c *gin.Context) {
 	id, err := strconv.Atoi(c.Query("id"))
 	if err != nil {
-		c.AbortWithStatusJSON(400, err.Error())
+		c.JSON(400, err.Error())
+		return
 	}
 
 	if nodes, err := GetProcessDefine(id); err == nil {
@@ -105,7 +106,8 @@ func ProcDef_GetProcDefByID(c *gin.Context) {
 func ProcInst_Start(c *gin.Context) {
 	ProcessID, err := strconv.Atoi(c.PostForm("ProcessID"))
 	if err != nil {
-		c.AbortWithStatusJSON(400, err.Error())
+		c.JSON(400, err.Error())
+		return
 	}
 	BusinessID := c.PostForm("BusinessID")
 	Comment := c.PostForm("Comment")
@@ -131,14 +133,16 @@ func ProcInst_Start(c *gin.Context) {
 func ProcInst_Revoke(c *gin.Context) {
 	InstanceID, err := strconv.Atoi(c.PostForm("InstanceID"))
 	if err != nil {
-		c.AbortWithStatusJSON(400, err.Error())
+		c.JSON(400, err.Error())
+		return
 	}
 
 	RevokeUserID := c.PostForm("RevokeUserID")
 
 	Force, err := strconv.ParseBool(c.PostForm("Force"))
 	if err != nil {
-		c.AbortWithStatusJSON(400, err.Error())
+		c.JSON(400, err.Error())
+		return
 	}
 
 	if err := InstanceRevoke(InstanceID, Force, RevokeUserID); err == nil {
@@ -159,7 +163,8 @@ func ProcInst_Revoke(c *gin.Context) {
 func ProcInst_TaskHistory(c *gin.Context) {
 	InstanceID, err := strconv.Atoi(c.Query("instid"))
 	if err != nil {
-		c.AbortWithStatusJSON(400, err.Error())
+		c.JSON(400, err.Error())
+		return
 	}
 	if tasklist, err := GetInstanceTaskHistory(InstanceID); err == nil {
 		c.JSON(200, tasklist)
@@ -184,11 +189,13 @@ func ProcInst_StartByUser(c *gin.Context) {
 	ProcessName := c.Query("procname")
 	StartIndex, err := strconv.Atoi(c.Query("idx"))
 	if err != nil {
-		c.AbortWithStatusJSON(400, err.Error())
+		c.JSON(400, err.Error())
+		return
 	}
 	MaxRow, err := strconv.Atoi(c.Query("rows"))
 	if err != nil {
-		c.AbortWithStatusJSON(400, err.Error())
+		c.JSON(400, err.Error())
+		return
 	}
 
 	if insts, err := GetInstanceStartByUser(UserID, ProcessName, StartIndex, MaxRow); err == nil {
@@ -211,7 +218,8 @@ func ProcInst_StartByUser(c *gin.Context) {
 func Task_Pass(c *gin.Context) {
 	TaskID, err := strconv.Atoi(c.PostForm("TaskID"))
 	if err != nil {
-		c.AbortWithStatusJSON(400, err.Error())
+		c.JSON(400, err.Error())
+		return
 	}
 	Comment := c.PostForm("Comment")
 	VariableJson := c.PostForm("VariableJson")
@@ -236,7 +244,8 @@ func Task_Pass(c *gin.Context) {
 func Task_Pass_DirectlyToWhoRejectedMe(c *gin.Context) {
 	TaskID, err := strconv.Atoi(c.PostForm("TaskID"))
 	if err != nil {
-		c.AbortWithStatusJSON(400, err.Error())
+		c.JSON(400, err.Error())
+		return
 	}
 	Comment := c.PostForm("Comment")
 	VariableJson := c.PostForm("VariableJson")
@@ -261,7 +270,8 @@ func Task_Pass_DirectlyToWhoRejectedMe(c *gin.Context) {
 func Task_Reject(c *gin.Context) {
 	TaskID, err := strconv.Atoi(c.PostForm("TaskID"))
 	if err != nil {
-		c.AbortWithStatusJSON(400, err.Error())
+		c.JSON(400, err.Error())
+		return
 	}
 	Comment := c.PostForm("Comment")
 	VariableJson := c.PostForm("VariableJson")
@@ -285,7 +295,8 @@ func Task_Reject(c *gin.Context) {
 func Task_Transfer(c *gin.Context) {
 	TaskID, err := strconv.Atoi(c.PostForm("TaskID"))
 	if err != nil {
-		c.AbortWithStatusJSON(400, err.Error())
+		c.JSON(400, err.Error())
+		return
 	}
 	Users:=strings.Split(c.PostForm("Users"),",")
 
@@ -314,11 +325,13 @@ func Task_ToDoList(c *gin.Context) {
 	ProcessName := c.Query("procname")
 	StartIndex, err := strconv.Atoi(c.Query("idx"))
 	if err != nil {
-		c.AbortWithStatusJSON(400, err.Error())
+		c.JSON(400, err.Error())
+		return
 	}
 	MaxRow, err := strconv.Atoi(c.Query("rows"))
 	if err != nil {
-		c.AbortWithStatusJSON(400, err.Error())
+		c.JSON(400, err.Error())
+		return
 	}
 
 	if tasks, err := GetTaskToDoList(UserID, ProcessName, StartIndex, MaxRow); err == nil {
@@ -345,15 +358,18 @@ func Task_FinishedList(c *gin.Context) {
 	ProcessName := c.Query("procname")
 	IgnoreStartByMe, err := strconv.ParseBool(c.Query("ignorestartbyme"))
 	if err != nil {
-		c.AbortWithStatusJSON(400, err.Error())
+		c.JSON(400, err.Error())
+		return
 	}
 	StartIndex, err := strconv.Atoi(c.Query("idx"))
 	if err != nil {
-		c.AbortWithStatusJSON(400, err.Error())
+		c.JSON(400, err.Error())
+		return
 	}
 	MaxRow, err := strconv.Atoi(c.Query("rows"))
 	if err != nil {
-		c.AbortWithStatusJSON(400, err.Error())
+		c.JSON(400, err.Error())
+		return
 	}
 	if tasks, err := GetTaskFinishedList(UserID, ProcessName, IgnoreStartByMe, StartIndex, MaxRow); err == nil {
 		c.JSON(200, tasks)
@@ -373,7 +389,8 @@ func Task_FinishedList(c *gin.Context) {
 func Task_UpstreamNodeList(c *gin.Context) {
 	TaskID, err := strconv.Atoi(c.Query("taskid"))
 	if err != nil {
-		c.AbortWithStatusJSON(400, err.Error())
+		c.JSON(400, err.Error())
+		return
 	}
 
 	if nodes, err := TaskUpstreamNodeList(TaskID); err == nil {
@@ -397,7 +414,8 @@ func Task_UpstreamNodeList(c *gin.Context) {
 func Task_FreeRejectToUpstreamNode(c *gin.Context) {
 	TaskID, err := strconv.Atoi(c.PostForm("TaskID"))
 	if err != nil {
-		c.AbortWithStatusJSON(400, err.Error())
+		c.JSON(400, err.Error())
+		return
 	}
 
 	Comment := c.PostForm("Comment")
@@ -422,7 +440,8 @@ func Task_FreeRejectToUpstreamNode(c *gin.Context) {
 func Task_WhatCanIDo(c *gin.Context) {
 	TaskID, err := strconv.Atoi(c.Query("taskid"))
 	if err != nil {
-		c.AbortWithStatusJSON(400, err.Error())
+		c.JSON(400, err.Error())
+		return
 	}
 	if action, err := WhatCanIDo(TaskID); err == nil {
 		c.JSON(200, action)
@@ -442,7 +461,8 @@ func Task_WhatCanIDo(c *gin.Context) {
 func Task_Info(c *gin.Context) {
 	TaskID, err := strconv.Atoi(c.Query("taskid"))
 	if err != nil {
-		c.AbortWithStatusJSON(400, err.Error())
+		c.JSON(400, err.Error())
+		return
 	}
 	if taskInfo, err := GetTaskInfo(TaskID); err == nil {
 		c.JSON(200, taskInfo)
