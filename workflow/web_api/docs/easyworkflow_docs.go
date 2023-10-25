@@ -412,6 +412,14 @@ const docTemplateeasyworkflow = `{
                         "required": true
                     },
                     {
+                        "type": "boolean",
+                        "example": true,
+                        "description": "是否按照任务完成时间升序排列",
+                        "name": "asc",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
                         "type": "integer",
                         "example": 0,
                         "description": "分页用,开始index",
@@ -713,6 +721,14 @@ const docTemplateeasyworkflow = `{
                         "description": "指定流程名称，非必填",
                         "name": "procname",
                         "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "example": true,
+                        "description": "是否按照任务生成时间升序排列",
+                        "name": "asc",
+                        "in": "query",
+                        "required": true
                     },
                     {
                         "type": "integer",

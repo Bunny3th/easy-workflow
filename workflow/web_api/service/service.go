@@ -298,16 +298,14 @@ func Task_Transfer(c *gin.Context) {
 		c.JSON(400, err.Error())
 		return
 	}
-	Users:=strings.Split(c.PostForm("Users"),",")
+	Users := strings.Split(c.PostForm("Users"), ",")
 
-
-	if err := TaskTransfer(TaskID,Users); err == nil {
+	if err := TaskTransfer(TaskID, Users); err == nil {
 		c.JSON(200, "ok")
 	} else {
 		c.JSON(400, err.Error())
 	}
 }
-
 
 // @Summary      获取待办任务
 // @Description  返回的是任务数组
@@ -315,6 +313,7 @@ func Task_Transfer(c *gin.Context) {
 // @Produce      json
 // @Param        userid  query string  true  "用户ID" example("U001")
 // @Param        procname  query string  false  "指定流程名称，非必填" example("请假")
+// @Param        asc  query bool  true  "是否按照任务生成时间升序排列" example(true)
 // @Param        idx  query int  true  "分页用,开始index" example(0)
 // @Param        rows  query int  true  "分页用,最大返回行数" example(0)
 // @Success      200  {object}  []model.Task 任务数组
@@ -323,6 +322,11 @@ func Task_Transfer(c *gin.Context) {
 func Task_ToDoList(c *gin.Context) {
 	UserID := c.Query("userid")
 	ProcessName := c.Query("procname")
+	SortByAsc, err := strconv.ParseBool(c.Query("asc"))
+	if err != nil {
+		c.JSON(400, err.Error())
+		return
+	}
 	StartIndex, err := strconv.Atoi(c.Query("idx"))
 	if err != nil {
 		c.JSON(400, err.Error())
@@ -334,7 +338,7 @@ func Task_ToDoList(c *gin.Context) {
 		return
 	}
 
-	if tasks, err := GetTaskToDoList(UserID, ProcessName, StartIndex, MaxRow); err == nil {
+	if tasks, err := GetTaskToDoList(UserID, ProcessName, SortByAsc, StartIndex, MaxRow); err == nil {
 		c.JSON(200, tasks)
 	} else {
 		c.JSON(400, err.Error())
@@ -348,6 +352,7 @@ func Task_ToDoList(c *gin.Context) {
 // @Param        userid  query string  true  "用户ID" example("U001")
 // @Param        procname  query string  false  "指定流程名称，非必填" example("请假")
 // @Param        ignorestartbyme  query bool  true  "忽略由我开启流程,而生成处理人是我自己的任务" example("true")
+// @Param        asc  query bool  true  "是否按照任务完成时间升序排列" example(true)
 // @Param        idx  query int  true  "分页用,开始index" example(0)
 // @Param        rows  query int  true  "分页用,最大返回行数" example(0)
 // @Success      200  {object}  []model.Task 任务数组
@@ -357,6 +362,11 @@ func Task_FinishedList(c *gin.Context) {
 	UserID := c.Query("userid")
 	ProcessName := c.Query("procname")
 	IgnoreStartByMe, err := strconv.ParseBool(c.Query("ignorestartbyme"))
+	if err != nil {
+		c.JSON(400, err.Error())
+		return
+	}
+	SortByAsc, err := strconv.ParseBool(c.Query("asc"))
 	if err != nil {
 		c.JSON(400, err.Error())
 		return
@@ -371,7 +381,7 @@ func Task_FinishedList(c *gin.Context) {
 		c.JSON(400, err.Error())
 		return
 	}
-	if tasks, err := GetTaskFinishedList(UserID, ProcessName, IgnoreStartByMe, StartIndex, MaxRow); err == nil {
+	if tasks, err := GetTaskFinishedList(UserID, ProcessName, IgnoreStartByMe,SortByAsc, StartIndex, MaxRow); err == nil {
 		c.JSON(200, tasks)
 	} else {
 		c.JSON(400, err.Error())

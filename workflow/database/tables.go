@@ -70,7 +70,7 @@ type ProcTask struct {
 	Comment            string    `gorm:"column:comment;type:TEXT;default:NULL;comment:任务备注"`
 	ProcInstCreateTime LocalTime `gorm:"column:proc_inst_create_time;type:DATETIME NOT NULL;comment:流程实例创建时间,冗余字段,偷懒用"`
 	CreateTime         LocalTime `gorm:"column:create_time;type:DATETIME DEFAULT NOW();default:NOW();comment:系统创建任务时间"`
-	FinishedTime       LocalTime `gorm:"column:finished_time;type:DATETIME DEFAULT NULL;default:NULL;comment:处理任务时间"`
+	FinishedTime       LocalTime `gorm:"index:ix_finished_time;column:finished_time;type:DATETIME DEFAULT NULL;default:NULL;comment:处理任务时间"`
 }
 
 //任务历史表
@@ -92,7 +92,7 @@ type HistProcTask struct {
 	Comment            string    `gorm:"column:comment;type:TEXT;default:NULL;comment:任务备注"`
 	ProcInstCreateTime LocalTime `gorm:"column:proc_inst_create_time;type:DATETIME NOT NULL;comment:流程实例创建时间,冗余字段,偷懒用"`
 	CreateTime         LocalTime `gorm:"column:create_time;type:DATETIME DEFAULT NOW();default:NOW();comment:系统创建任务时间"`
-	FinishedTime       LocalTime `gorm:"column:finished_time;type:DATETIME DEFAULT NULL;default:NULL;comment:处理任务时间"`
+	FinishedTime       LocalTime `gorm:"index:ix_finished_time;column:finished_time;type:DATETIME DEFAULT NULL;default:NULL;comment:处理任务时间"`
 }
 
 //流程节点执行关系定义表

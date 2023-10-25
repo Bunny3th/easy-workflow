@@ -336,10 +336,20 @@ func GetTaskInfo(TaskID int) (Task, error) {
 //获取特定用户待办任务列表。参数说明：
 //UserID:用户ID
 //ProcessName:指定流程名称,传入""则为全部
+//SortByASC 返回数据是否按照任务生成时间升序排列(实际是按照TaskID排序。TaskID是int型自增字段，用其排序与用createtime效果一致)。若传入false，则会按照降序排列
 //StartIndex:分页用,开始index
 //MaxRows:分页用,最大返回行数
-func GetTaskToDoList(UserID string, ProcessName string, StartIndex int, MaxRows int) ([]Task, error) {
+func GetTaskToDoList(UserID string, ProcessName string, SortByASC bool, StartIndex int, MaxRows int) ([]Task, error) {
 	var tasks []Task
+
+	//根据传入参数判断排序规则
+	var sortBy string
+	if SortByASC {
+		sortBy = "ASC"
+	} else {
+		sortBy = "DESC"
+	}
+
 	sql := "SELECT a.id,a.proc_id,b.name,a.proc_inst_id,\n" +
 		"a.business_id,a.starter,a.node_id,a.node_name,a.prev_node_id,\n" +
 		"a.is_cosigned,a.batch_code,a.user_id,a.`status` ,a.is_finished,a.`comment`,\n" +
@@ -352,6 +362,7 @@ func GetTaskToDoList(UserID string, ProcessName string, StartIndex int, MaxRows 
 		" AND a.is_finished=0 \n" +
 		"AND CASE WHEN ''=@procname THEN TRUE ELSE b.name=@procname END\n" +
 		"ORDER BY a.id\n" +
+		sortBy + "\n" +
 		"limit @index,@rows;"
 
 	condition := map[string]interface{}{"userid": UserID, "procname": ProcessName, "index": StartIndex, "rows": MaxRows}
@@ -368,10 +379,20 @@ func GetTaskToDoList(UserID string, ProcessName string, StartIndex int, MaxRows 
 // ProcessName:指定流程名称,传入""则为全部
 // IgnoreStartByMe: 某些情况下只希望看到“别人提交由我审批完成的任务",而不希望看到"由我开启流程,而生成处理人是我自己的任务",则传True
 // taps:"由我启动的流程"可使用GetInstanceStartByUser函数
+//SortByASC 返回数据是否按照任务完成时间升序排列。若传入false，则会按照降序排列
 // StartIndex:分页用,开始index
 // MaxRows:分页用,最大返回行数
-func GetTaskFinishedList(UserID string, ProcessName string, IgnoreStartByMe bool, StartIndex int, MaxRows int) ([]Task, error) {
+func GetTaskFinishedList(UserID string, ProcessName string, IgnoreStartByMe bool, SortByASC bool, StartIndex int, MaxRows int) ([]Task, error) {
 	var tasks []Task
+
+	//根据传入参数判断排序规则
+	var sortBy string
+	if SortByASC {
+		sortBy = "ASC"
+	} else {
+		sortBy = "DESC"
+	}
+
 	sql := "WITH tmp_task AS\n" +
 		"(SELECT id,proc_id, proc_inst_id,business_id,starter,node_id,node_name,prev_node_id,is_cosigned,\n" +
 		"batch_code,user_id,`status` ,is_finished,`comment`,proc_inst_create_time,create_time,finished_time \n" +
@@ -392,7 +413,9 @@ func GetTaskFinishedList(UserID string, ProcessName string, IgnoreStartByMe bool
 		"AND a.`status`!=0 \n" + //有些任务不是用户完成，而是系统结束，这些任务的status=0,不必给用户看
 		"AND CASE WHEN ''=@procname THEN TRUE ELSE b.name=@procname END\n" +
 		"AND CASE WHEN true=@ignorestartbyme THEN a.starter!=@userid ELSE TRUE END\n" + //是否忽略由我开启流程,而生成处理人是我自己的任务
-		"ORDER BY a.id limit @index,@rows;"
+		"ORDER BY a.finished_time\n" +
+		sortBy + "\n" +
+		"limit @index,@rows;"
 
 	condition := map[string]interface{}{
 		"userid":          UserID,
@@ -493,7 +516,8 @@ func GetInstanceTaskHistory(ProcessInstanceID int) ([]Task, error) {
 		"a.create_time,\n" +
 		"a.finished_time\n" +
 		"FROM tmp_task a\n" +
-		"JOIN `proc_def` b ON a.proc_id=b.id;"
+		"JOIN `proc_def` b ON a.proc_id=b.id\n" +
+		"order by a.id;"
 	_, err := ExecSQL(sql, &tasklist, ProcessInstanceID, ProcessInstanceID)
 	if err != nil {
 		return nil, err
@@ -607,10 +631,6 @@ func TaskNodeStatus(TaskID int) (int, int, int, error) {
 
 //将任务提交数据(通过、驳回、变量)保存到数据库
 func taskSubmit(TaskInfo Task, Comment string, VariableJson string, Status int) error {
-	//taskInfo, err := GetTaskInfo(TaskID)
-	//if err != nil {
-	//	return err
-	//}
 	//判断节点是否已处理
 	if TaskInfo.IsFinished == 1 {
 		return fmt.Errorf("节点ID%d已处理，无需操作", TaskInfo.TaskID)

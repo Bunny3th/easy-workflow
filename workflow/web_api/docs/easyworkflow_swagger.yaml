@@ -500,6 +500,12 @@ paths:
         name: ignorestartbyme
         required: true
         type: boolean
+      - description: 是否按照任务完成时间升序排列
+        example: true
+        in: query
+        name: asc
+        required: true
+        type: boolean
       - description: 分页用,开始index
         example: 0
         in: query
@@ -706,6 +712,12 @@ paths:
         in: query
         name: procname
         type: string
+      - description: 是否按照任务生成时间升序排列
+        example: true
+        in: query
+        name: asc
+        required: true
+        type: boolean
       - description: 分页用,开始index
         example: 0
         in: query
