@@ -207,7 +207,7 @@ const docTemplateeasyworkflow = `{
                     {
                         "type": "string",
                         "example": "\"订单001\"",
-                        "description": "业务员ID",
+                        "description": "业务ID",
                         "name": "BusinessID",
                         "in": "formData",
                         "required": true

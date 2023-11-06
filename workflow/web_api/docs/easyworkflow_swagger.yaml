@@ -359,7 +359,7 @@ paths:
         name: ProcessID
         required: true
         type: string
-      - description: 业务员ID
+      - description: 业务ID
         example: '"订单001"'
         in: formData
         name: BusinessID

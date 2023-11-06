@@ -97,7 +97,7 @@ func ProcDef_GetProcDefByID(c *gin.Context) {
 // @Tags         流程实例
 // @Produce      json
 // @Param        ProcessID  formData string  true  "流程ID" example(1)
-// @Param        BusinessID  formData string  true  "业务员ID" example("订单001")
+// @Param        BusinessID  formData string  true  "业务ID" example("订单001")
 // @Param        Comment  formData string  false  "评论意见" example("家中有事请假三天,请领导批准")
 // @Param        VariablesJson  formData string  false  "变量(Json)" example([{"Key":"starter","Value":"U0001"}])
 // @Success      200  {object}  int 流程实例ID
