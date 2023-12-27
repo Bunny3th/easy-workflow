@@ -245,7 +245,7 @@ func GetInstanceInfo(ProcessInstanceID int) (Instance, error) {
 }
 
 //获取起始人为特定用户的流程实例。参数说明：
-//UserID:用户ID
+//UserID:用户ID 传入空则获取所有用户的流程实例
 //ProcessName:指定流程名称,传入""则为全部
 //StartIndex:分页用,开始index
 //MaxRows:分页用,最大返回行数
@@ -256,12 +256,12 @@ func GetInstanceStartByUser(UserID string,ProcessName string,StartIndex int,MaxR
 		"(SELECT id,proc_id,proc_version,business_id,starter,current_node_id,\n" +
 		"create_time,`status`\n" +
 		"FROM proc_inst \n" +
-		"WHERE starter=@userid\n" +
+		"WHERE CASE WHEN ''=@userid THEN TRUE ELSE starter=@userid END\n" +
 		"UNION ALL\n" +
 		"SELECT proc_inst_id AS id,proc_id,proc_version,business_id,starter,current_node_id,\n" +
 		"create_time,`status` \n" +
 		"FROM hist_proc_inst \n" +
-		"WHERE starter=@userid)\n" +
+		"WHERE CASE WHEN ''=@userid THEN TRUE ELSE starter=@userid END)\n" +
 
 		"SELECT a.id,a.proc_id,a.proc_version,a.business_id,\n" +
 		"a.starter,a.current_node_id,a.create_time,a.`status`,b.name\n" +

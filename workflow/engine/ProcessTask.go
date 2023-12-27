@@ -334,7 +334,7 @@ func GetTaskInfo(TaskID int) (Task, error) {
 }
 
 //获取特定用户待办任务列表。参数说明：
-//UserID:用户ID
+//UserID:用户ID 传入空则获取所有用户的待办任务
 //ProcessName:指定流程名称,传入""则为全部
 //SortByASC 返回数据是否按照任务生成时间升序排列(实际是按照TaskID排序。TaskID是int型自增字段，用其排序与用createtime效果一致)。若传入false，则会按照降序排列
 //StartIndex:分页用,开始index
@@ -358,7 +358,7 @@ func GetTaskToDoList(UserID string, ProcessName string, SortByASC bool, StartInd
 		"a.finished_time\n" +
 		"FROM proc_task a\n" +
 		"JOIN `proc_def` b ON a.proc_id=b.id\n" +
-		"WHERE a.user_id=@userid\n" +
+		"WHERE CASE WHEN ''=@userid THEN TRUE ELSE a.user_id=@userid END\n" +
 		" AND a.is_finished=0 \n" +
 		"AND CASE WHEN ''=@procname THEN TRUE ELSE b.name=@procname END\n" +
 		"ORDER BY a.id\n" +
@@ -375,7 +375,8 @@ func GetTaskToDoList(UserID string, ProcessName string, SortByASC bool, StartInd
 }
 
 // 获取特定用户已完成任务列表。参数说明：
-// UserID:用户ID
+// UserID:用户ID 传入空则获取所有用户的已完成任务
+///*注意,当传入UserID为空时,IgnoreStartByMe参数强制为False
 // ProcessName:指定流程名称,传入""则为全部
 // IgnoreStartByMe: 某些情况下只希望看到“别人提交由我审批完成的任务",而不希望看到"由我开启流程,而生成处理人是我自己的任务",则传True
 // taps:"由我启动的流程"可使用GetInstanceStartByUser函数
@@ -393,14 +394,21 @@ func GetTaskFinishedList(UserID string, ProcessName string, IgnoreStartByMe bool
 		sortBy = "DESC"
 	}
 
+	//当传入UserID为空时,IgnoreStartByMe参数强制变为False
+	//因为sql语句的判断是这样的: AND CASE WHEN true=@ignorestartbyme THEN a.starter!=@userid ELSE TRUE END
+	//当UserID为空时，a.starter!=@userid永远成立，所以不需要做这个判断，直接pass掉
+	if UserID==""{
+		IgnoreStartByMe=false
+	}
+
 	sql := "WITH tmp_task AS\n" +
 		"(SELECT id,proc_id, proc_inst_id,business_id,starter,node_id,node_name,prev_node_id,is_cosigned,\n" +
 		"batch_code,user_id,`status` ,is_finished,`comment`,proc_inst_create_time,create_time,finished_time \n" +
-		"FROM proc_task WHERE user_id=@userid\n" +
+		"FROM proc_task WHERE CASE WHEN ''=@userid THEN TRUE ELSE user_id=@userid END\n" +
 		"UNION ALL\n" +
 		"SELECT task_id AS id,proc_id, proc_inst_id,business_id,starter,node_id,node_name,prev_node_id,is_cosigned,\n" +
 		"batch_code,user_id,`status` ,is_finished,`comment`,proc_inst_create_time,create_time,finished_time \n" +
-		"FROM hist_proc_task WHERE user_id=@userid\n" +
+		"FROM hist_proc_task WHERE CASE WHEN ''=@userid THEN TRUE ELSE user_id=@userid END\n" +
 		")\n\n" +
 		"SELECT a.id,a.proc_id,b.name,a.proc_inst_id,a.business_id,a.starter,a.node_id,a.node_name,a.prev_node_id,a.is_cosigned,\n" +
 		"a.batch_code,a.user_id,a.`status` ,a.is_finished,a.`comment`,\n" +

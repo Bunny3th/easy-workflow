@@ -177,7 +177,7 @@ func ProcInst_TaskHistory(c *gin.Context) {
 // @Description
 // @Tags         流程实例
 // @Produce      json
-// @Param        userid  query string  true  "用户ID" example("U001")
+// @Param        userid  query string  true  "用户ID 传入空则获取所有用户的流程实例" example("U001")
 // @Param        procname  query string  false  "指定流程名称，非必填" example("请假")
 // @Param        idx  query int  true  "分页用,开始index" example(0)
 // @Param        rows  query int  true  "分页用,最大返回行数" example(0)
@@ -311,7 +311,7 @@ func Task_Transfer(c *gin.Context) {
 // @Description  返回的是任务数组
 // @Tags         任务
 // @Produce      json
-// @Param        userid  query string  true  "用户ID" example("U001")
+// @Param        userid  query string  true  "用户ID 传入空则获取所有用户的待办任务" example("U001")
 // @Param        procname  query string  false  "指定流程名称，非必填" example("请假")
 // @Param        asc  query bool  true  "是否按照任务生成时间升序排列" example(true)
 // @Param        idx  query int  true  "分页用,开始index" example(0)
@@ -349,7 +349,7 @@ func Task_ToDoList(c *gin.Context) {
 // @Description  返回的是任务数组
 // @Tags         任务
 // @Produce      json
-// @Param        userid  query string  true  "用户ID" example("U001")
+// @Param        userid  query string  true  "用户ID 传入空则获取所有用户的已完成任务(此时IgnoreStartByMe参数强制为False)" example("U001")
 // @Param        procname  query string  false  "指定流程名称，非必填" example("请假")
 // @Param        ignorestartbyme  query bool  true  "忽略由我开启流程,而生成处理人是我自己的任务" example("true")
 // @Param        asc  query bool  true  "是否按照任务完成时间升序排列" example(true)
