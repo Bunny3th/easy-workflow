@@ -210,6 +210,11 @@ func GetProcessDefine(ProcessID int) (Process, error) {
 		return Process{}, err
 	}
 
+	//如果数据库中没有找到ProcessID对应的流程,则直接报错
+	if r.Resource==""{
+		return Process{},errors.New("未找到对应流程定义")
+	}
+
 	return ProcessParse(r.Resource)
 }
 
