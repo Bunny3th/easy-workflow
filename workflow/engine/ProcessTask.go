@@ -452,7 +452,7 @@ func TaskUpstreamNodeList(TaskID int) ([]Node, error) {
 		"UNION ALL " +
 		"SELECT a.`node_id`,a.node_name,a.`prev_node_id`,a.`node_type` " +
 		"FROM `proc_execution` a JOIN tmp b ON a.node_id=b.`prev_node_id`) " +
-		"SELECT node_id,node_name,prev_node_id,node_type FROM tmp WHERE node_type!=2 AND node_id!=?;"
+		"SELECT DISTINCT node_id,node_name,prev_node_id,node_type FROM tmp WHERE node_type!=2 AND node_id!=?;"
 	var nodes []Node
 	if _, err := ExecSQL(sql, &nodes, task.NodeID, task.NodeID); err == nil {
 		return nodes, nil
