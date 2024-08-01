@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-//处理节点,如：生成task、进行条件判断、处理结束节点等
+// 处理节点,如：生成task、进行条件判断、处理结束节点等
 func ProcessNode(ProcessInstanceID int, CurrentNode *Node, PrevNode Node) error {
 	//这里处理开始事件
 	err := RunNodeEvents(CurrentNode.NodeStartEvents, ProcessInstanceID, CurrentNode, PrevNode)
@@ -48,9 +48,9 @@ func ProcessNode(ProcessInstanceID int, CurrentNode *Node, PrevNode Node) error 
 	return nil
 }
 
-//开始节点处理 开始节点是一个特殊的任务节点，其特殊点在于:
-//1、在生成流程实例的同时，就要运行开始节点
-//2、开始节点生成的任务自动完成，而后自动进行下一个节点的处理
+// 开始节点处理 开始节点是一个特殊的任务节点，其特殊点在于:
+// 1、在生成流程实例的同时，就要运行开始节点
+// 2、开始节点生成的任务自动完成，而后自动进行下一个节点的处理
 func startNodeHandle(ProcessInstanceID int, StartNode *Node, Comment string, VariableJson string) error {
 	if StartNode.NodeType != RootNode {
 		return errors.New("不是开始节点，无法处理节点:" + StartNode.NodeName)
@@ -77,8 +77,8 @@ func startNodeHandle(ProcessInstanceID int, StartNode *Node, Comment string, Var
 	return nil
 }
 
-//结束节点处理 结束节点只做收尾工作，将数据库中此流程实例产生的数据归档
-//Status 流程实例状态 1:已完成 2:撤销
+// 结束节点处理 结束节点只做收尾工作，将数据库中此流程实例产生的数据归档
+// Status 流程实例状态 1:已完成 2:撤销
 func EndNodeHandle(ProcessInstanceID int, Status int) error {
 	//开启事务
 	tx := DB.Begin()
@@ -157,7 +157,7 @@ func EndNodeHandle(ProcessInstanceID int, Status int) error {
 	return nil
 }
 
-//任务节点处理 返回生成的taskid数组
+// 任务节点处理 返回生成的taskid数组
 func TaskNodeHandle(ProcessInstanceID int, CurrentNode *Node, PrevNode Node) ([]int, error) {
 	//获取节点用户
 	users, err := resolveNodeUser(ProcessInstanceID, *CurrentNode)
@@ -185,7 +185,7 @@ func TaskNodeHandle(ProcessInstanceID int, CurrentNode *Node, PrevNode Node) ([]
 	return taskIDs, nil
 }
 
-//GateWay节点处理
+// GateWay节点处理
 func GateWayNodeHandle(ProcessInstanceID int, CurrentNode *Node, PrevTaskNode Node) error {
 	//--------------------首先，混合节点需要确认所有的上级节点都处理完，才能做下一步--------------------
 	var totalFinished int                          //所有已完成的上级节点
@@ -227,7 +227,7 @@ func GateWayNodeHandle(ProcessInstanceID int, CurrentNode *Node, PrevTaskNode No
 			return err
 		}
 		for k, v := range kv {
-			expression = strings.Replace(expression, k, v, -1)
+			expression = strings.Replace(expression, k, fmt.Sprintf("'%s'", v), -1)
 		}
 
 		//计算表达式，如果成功，则将节点添加到下一级节点组中
@@ -274,7 +274,7 @@ func GateWayNodeHandle(ProcessInstanceID int, CurrentNode *Node, PrevTaskNode No
 
 }
 
-//获取流程实例中某个Node 返回 Node
+// 获取流程实例中某个Node 返回 Node
 func GetInstanceNode(ProcessInstanceID int, NodeID string) (Node, error) {
 	ProcID, err := GetProcessIDByInstanceID(ProcessInstanceID)
 	if err != nil {
@@ -295,9 +295,9 @@ func GetInstanceNode(ProcessInstanceID int, NodeID string) (Node, error) {
 	return node, nil
 }
 
-//判断特定实例中某一个节点是否已经完成
-//注意，finish只是代表节点是不是已经处理，不管处理的方式是驳回还是通过
-//一个流程实例中，由于驳回等原因，x节点可能出现多次。这里使用统计所有x节点的任务是否都finish来判断x节点是否finish
+// 判断特定实例中某一个节点是否已经完成
+// 注意，finish只是代表节点是不是已经处理，不管处理的方式是驳回还是通过
+// 一个流程实例中，由于驳回等原因，x节点可能出现多次。这里使用统计所有x节点的任务是否都finish来判断x节点是否finish
 func InstanceNodeIsFinish(ProcessInstanceID int, NodeID string) (bool, error) {
 	var finished bool
 	sql := "SELECT CASE WHEN total=finished THEN 1 ELSE 0 END AS finished " +
@@ -312,9 +312,9 @@ func InstanceNodeIsFinish(ProcessInstanceID int, NodeID string) (bool, error) {
 	}
 }
 
-//解析节点用户
-//1、获得用户变量
-//2、用户去重
+// 解析节点用户
+// 1、获得用户变量
+// 2、用户去重
 func resolveNodeUser(ProcessInstanceID int, node Node) ([]string, error) {
 	//匹配节点用户变量
 	kv, err := ResolveVariables(ProcessInstanceID, node.UserIDs)
