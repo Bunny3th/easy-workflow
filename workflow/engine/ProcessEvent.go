@@ -35,23 +35,22 @@ func RegisterEvents(Struct any) {
 func verifyProcEventParameters(m reflect.Method) error {
 	//自定义函数必须是3个参数，参数0：*struct{} 1:int 2:String
 	if m.Type.NumIn() != 3 || m.Type.NumOut() != 1 {
-		fmt.Errorf("warning:事件方法 %s 入参、出参数量不匹配,此函数无法运行", m.Name)
+		return fmt.Errorf("warning:事件方法 %s 入参、出参数量不匹配,此函数无法运行", m.Name)
 	}
 
 	if m.Type.In(1).Kind().String() != "int" {
-		fmt.Errorf("warning:事件方法 %s 参数1不是int类型,此函数无法运行", m.Name)
+		return fmt.Errorf("warning:事件方法 %s 参数1不是int类型,此函数无法运行", m.Name)
 	}
 
 	if m.Type.In(2).Kind().String() != "string" {
-		fmt.Errorf("warning:事件方法 %s 参数2不是string类型,此函数无法运行", m.Name)
+		return fmt.Errorf("warning:事件方法 %s 参数2不是string类型,此函数无法运行", m.Name)
 	}
 
 	if !TypeIsError(m.Type.Out(0)) {
-		fmt.Errorf("warning:事件方法 %s 返回参数不是error类型,此函数无法运行", m.Name)
+		return fmt.Errorf("warning:事件方法 %s 返回参数不是error类型,此函数无法运行", m.Name)
 	}
 	return nil
 }
-
 
 //验证节点事件(1、节点开始  2、节点结束 3、任务结束)参数是否正确
 //1、节点开始、结束事件     func签名必须是func(struct *interface{}, ProcessInstanceID int, CurrentNode *Node, PrevNode Node) error
@@ -59,24 +58,23 @@ func verifyProcEventParameters(m reflect.Method) error {
 func verifyNodeEventParameters(m reflect.Method) error {
 	//自定义函数必须是4个参数，参数0：*struct{} 1:int 2:Node 3:Node
 	if m.Type.NumIn() != 4 || m.Type.NumOut() != 1 {
-		fmt.Errorf("warning:事件方法 %s 入参、出参数量不匹配,此函数无法运行", m.Name)
+		return fmt.Errorf("warning:事件方法 %s 入参、出参数量不匹配,此函数无法运行", m.Name)
 	}
 
 	if m.Type.In(1).Kind().String() != "int" {
-		fmt.Errorf("warning:事件方法 %s 参数1不是int类型,此函数无法运行", m.Name)
+		return fmt.Errorf("warning:事件方法 %s 参数1不是int类型,此函数无法运行", m.Name)
 	}
 
 	if m.Type.In(2).ConvertibleTo(reflect.TypeOf(&Node{})) != true {
-		fmt.Errorf("warning:事件方法 %s 参数2不是*Node类型,此函数无法运行", m.Name)
-
+		return fmt.Errorf("warning:事件方法 %s 参数2不是*Node类型,此函数无法运行", m.Name)
 	}
 
 	if m.Type.In(3).ConvertibleTo(reflect.TypeOf(Node{})) != true {
-		fmt.Errorf("warning:事件方法 %s 参数3不是Node类型,此函数无法运行", m.Name)
+		return fmt.Errorf("warning:事件方法 %s 参数3不是Node类型,此函数无法运行", m.Name)
 	}
 
 	if !TypeIsError(m.Type.Out(0)) {
-		fmt.Errorf("warning:事件方法 %s 返回参数不是error类型,此函数无法运行", m.Name)
+		return fmt.Errorf("warning:事件方法 %s 返回参数不是error类型,此函数无法运行", m.Name)
 	}
 	return nil
 }
@@ -95,8 +93,8 @@ func VerifyEvents(ProcessID int, Nodes ProcNodes) error {
 	for _, event := range process.RevokeEvents {
 		if e, ok := EventPool[event]; !ok {
 			return fmt.Errorf("事件%s尚未导入", event)
-		}else{
-			if err:=verifyProcEventParameters(e.M);err!=nil{
+		} else {
+			if err := verifyProcEventParameters(e.M); err != nil {
 				return err
 			}
 		}
@@ -111,7 +109,7 @@ func VerifyEvents(ProcessID int, Nodes ProcNodes) error {
 	}
 
 	//各个节点中事件可能有重复的，需做去重
-	nodeEventsSet:=MakeUnique(nodeEvents)
+	nodeEventsSet := MakeUnique(nodeEvents)
 
 	//验证节点事件
 	for _, event := range nodeEventsSet {
@@ -178,8 +176,8 @@ func RunProcEvents(EventNames []string, ProcessInstanceID int, RevokeUserID stri
 		}
 
 		//获取流程名
-		processName,err:=GetProcessNameByInstanceID(ProcessInstanceID)
-		if err!=nil{
+		processName, err := GetProcessNameByInstanceID(ProcessInstanceID)
+		if err != nil {
 			return err
 		}
 
