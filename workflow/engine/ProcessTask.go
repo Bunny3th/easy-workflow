@@ -37,12 +37,10 @@ func CreateTask(ProcessInstanceID int, NodeID string, PrevNodeID string, UserIDs
 	userIDs := MakeUnique(UserIDs)
 
 	//而后去掉本节点中未结束任务的用户
-	for i, u := range userIDs {
-		for _, nu := range notFinishUsers {
-			if u == nu.UserID {
-				userIDs = RemoveFromSlice[string](userIDs, i)
-			}
-		}
+	//bug fix  2024.11.13 by yujf
+	//感谢hkb1990同学指出问题 原有RemoveFromSlice函数有问题，使用新函数RemoveAllElements代替
+	for _,nu:=range notFinishUsers{
+		userIDs=RemoveAllElements(userIDs,nu.UserID)
 	}
 
 	//获取流程ID
@@ -72,7 +70,11 @@ func CreateTask(ProcessInstanceID int, NodeID string, PrevNodeID string, UserIDs
 
 	//开始生成数据
 	var tasks []database.ProcTask
-	for _, u := range UserIDs {
+	//bug fix 2024.11.13 by yujf
+	//感谢hkb1990同学指出问题
+	//此处代码原为 for _, u := range UserIDs  UserIDs是原始传入的参数
+	//有误，应改为 for _, u := range userIDs  userIDs经过了去重以及去掉未完成任务user处理
+	for _, u := range userIDs {
 		tasks = append(tasks, database.ProcTask{ProcID: ProcID, ProcInstID: ProcessInstanceID, ProcInstCreateTime: ProcInstInfo.CreateTime,
 			BusinessID: ProcInstInfo.BusinessID, Starter: ProcInstInfo.Starter, NodeID: NodeID, NodeName: Node.NodeName,
 			PrevNodeID: PrevNodeID, IsCosigned: Node.IsCosigned, BatchCode: BatchCode, UserID: u})

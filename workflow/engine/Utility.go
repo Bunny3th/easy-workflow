@@ -92,10 +92,13 @@ func MakeUnique(List ...[]string) []string {
 	return unique
 }
 
-//从切片中删除对应Index的项
-func RemoveFromSlice[T any](Slice []T, RemoveItemIndex int) []T{
-	NewSlice := append(Slice[:RemoveItemIndex], Slice[RemoveItemIndex+1:]...)
-	return NewSlice
+// removeAllElements 删除切片中所有匹配的元素 2024.11.13 add by yujf
+func RemoveAllElements(slice []string, value string) []string {
+	result := []string{}
+	for _, v := range slice {
+		if v != value {
+			result = append(result, v)
+		}
+	}
+	return result
 }
-
-
